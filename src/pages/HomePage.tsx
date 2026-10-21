@@ -2,25 +2,20 @@ import { useNavigate } from 'react-router-dom'
 import {
   Television, SoccerBall, FilmSlate, Play,
   ArrowRight, RadioButton, TrendUp,
-  Clock, Flame, Lightning, Sparkle,
+  Flame, Lightning, Sparkle,
 } from '@phosphor-icons/react'
 import channels from '../data/tv_channels.json'
 import fixtures from '../data/sports_fixtures.json'
-import type { TvChannel, Fixture } from '../data/types'
+import type { TvChannel } from '../data/types'
 
 const tvChannels = (channels as TvChannel[]).filter((c) => c.active)
-const allFixtures = fixtures as Fixture[]
+const allFixtures = fixtures as { competition_name: string }[]
 const competitions = [...new Set(allFixtures.map((f) => f.competition_name))]
 
 export default function HomePage() {
   const navigate = useNavigate()
 
   const featuredChannels = tvChannels.slice(0, 10)
-  const liveFixtures = allFixtures.filter((f) => f.status === 'IN_PLAY').slice(0, 4)
-  const upcomingFixtures = allFixtures
-    .filter((f) => f.status === 'SCHEDULED' || f.status === 'TIMED')
-    .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
-    .slice(0, 8)
 
   return (
     <div className="pb-24 md:pb-10">
@@ -114,23 +109,7 @@ export default function HomePage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-16 py-14">
 
-        {/* ══════════════════════════════════════
-            LIVE NOW
-        ══════════════════════════════════════ */}
-        {liveFixtures.length > 0 && (
-          <section>
-            <Row
-              icon={<span className="w-2 h-2 rounded-full bg-red-500 live-dot" />}
-              label="Live Now"
-              action={{ text: 'All fixtures', onClick: () => navigate('/sports') }}
-            />
-            <div className="grid sm:grid-cols-2 gap-3">
-              {liveFixtures.map((f) => (
-                <FixtureCard key={f.id} fixture={f} onClick={() => navigate(`/sports/fixture/${f.id}`)} />
-              ))}
-            </div>
-          </section>
-        )}
+
 
         {/* ══════════════════════════════════════
             LIVE TV
@@ -200,23 +179,7 @@ export default function HomePage() {
           ))}
         </section>
 
-        {/* ══════════════════════════════════════
-            UPCOMING FIXTURES
-        ══════════════════════════════════════ */}
-        {upcomingFixtures.length > 0 && (
-          <section>
-            <Row
-              icon={<Clock weight="duotone" size={16} className="text-primary-light" />}
-              label="Upcoming Fixtures"
-              action={{ text: 'Full schedule', onClick: () => navigate('/sports') }}
-            />
-            <div className="grid sm:grid-cols-2 gap-3">
-              {upcomingFixtures.map((f) => (
-                <FixtureCard key={f.id} fixture={f} onClick={() => navigate(`/sports/fixture/${f.id}`)} />
-              ))}
-            </div>
-          </section>
-        )}
+
 
         {/* ══════════════════════════════════════
             MOVIES BANNER
@@ -364,69 +327,4 @@ function ChannelCard({ channel, onClick }: { channel: TvChannel; onClick: () => 
   )
 }
 
-function FixtureCard({ fixture, onClick }: { fixture: Fixture; onClick: () => void }) {
-  const isLive = fixture.status === 'IN_PLAY'
-  const isFinished = fixture.status === 'FINISHED'
-  const date = new Date(fixture.utc_date)
 
-  return (
-    <div
-      onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 ${
-        isLive
-          ? 'bg-red-500/5 border-red-500/15 hover:border-red-500/30'
-          : 'bg-surface border-white/6 hover:border-white/14'
-      }`}
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
-    >
-      <div className="p-4">
-        {/* Top row */}
-        <div className="flex items-center justify-between mb-3.5">
-          <span className="text-[10px] font-semibold text-gray-700 uppercase tracking-widest truncate max-w-[65%]">
-            {fixture.competition_name}
-          </span>
-          {isLive ? (
-            <span className="flex items-center gap-1 text-[10px] font-black text-red-400 tracking-widest uppercase">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-500 live-dot" /> Live
-            </span>
-          ) : (
-            <span className="text-[11px] font-medium text-gray-700 tabular-nums">
-              {isFinished ? 'FT' : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-            </span>
-          )}
-        </div>
-
-        {/* Teams */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1 flex items-center gap-2 min-w-0">
-            <img src={fixture.home_team_crest} alt="" className="w-6 h-6 object-contain shrink-0"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-            <span className={`text-[13px] font-semibold truncate tracking-tight ${
-              fixture.winner === 'HOME_TEAM' ? 'text-white' : isFinished ? 'text-gray-600' : 'text-white'
-            }`}>{fixture.home_team_name}</span>
-          </div>
-
-          <div className="shrink-0 min-w-[52px] text-center">
-            {isLive || isFinished ? (
-              <span className={`text-[15px] font-black tabular-nums tracking-tight ${isLive ? 'text-red-400' : 'text-white'}`}>
-                {fixture.home_score ?? 0}–{fixture.away_score ?? 0}
-              </span>
-            ) : (
-              <span className="text-[12px] font-bold text-gray-600 tabular-nums">
-                {date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            )}
-          </div>
-
-          <div className="flex-1 flex items-center gap-2 justify-end min-w-0">
-            <span className={`text-[13px] font-semibold truncate text-right tracking-tight ${
-              fixture.winner === 'AWAY_TEAM' ? 'text-white' : isFinished ? 'text-gray-600' : 'text-white'
-            }`}>{fixture.away_team_name}</span>
-            <img src={fixture.away_team_crest} alt="" className="w-6 h-6 object-contain shrink-0"
-              onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none' }} />
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}

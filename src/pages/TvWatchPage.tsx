@@ -118,14 +118,17 @@ export default function TvWatchPage() {
   useEffect(() => {
     setIframeLoaded(false)
     setPlayerState('loading')
+    setErrorMsg('')
 
-    // For iframe/youtube embeds: clear the spinner after 6s as a fallback
-    // in case onLoad is delayed (e.g. by a debugger trap in the embed)
+    // For iframe/youtube embeds: fallback after 12s.
+    // If the iframe fires onLoad quickly → spinner clears normally.
+    // If it never fires (connection refused, 451, etc.) → show error UI.
     if (channel && channel.source_type !== 'hls') {
       const timer = setTimeout(() => {
-        setIframeLoaded(true)
-        setPlayerState('ready')
-      }, 6000)
+        setIframeLoaded(false)
+        setPlayerState('error')
+        setErrorMsg('This channel is unavailable in your region or has been taken down. Try opening it in a new tab or choose another channel.')
+      }, 12000)
       return () => clearTimeout(timer)
     }
   }, [id, channel])
@@ -208,55 +211,87 @@ export default function TvWatchPage() {
             {/* ── YouTube ── */}
             {isYouTube && (
               <>
-                {!iframeLoaded && (
+                {playerState === 'error' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 p-6 text-center gap-3 z-20">
+                    <WarningCircle weight="duotone" size={32} className="text-amber-500" />
+                    <p className="text-sm text-gray-300 max-w-xs">{errorMsg}</p>
+                    <a
+                      href={channel.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2 bg-primary hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      ↗ Open in new tab
+                    </a>
+                    <button onClick={() => navigate('/tv')} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                      Browse other channels
+                    </button>
+                  </div>
+                )}
+                {!iframeLoaded && playerState !== 'error' && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/80 pointer-events-none z-10">
                     <SpinnerGap weight="bold" size={32} className="text-primary animate-spin" />
                   </div>
                 )}
-                <iframe
-                  key={`yt-${id}-${retryKey}`}
-                  ref={iframeRef}
-                  src={toYouTubeEmbed(channel.source_url)}
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture; accelerometer; encrypted-media; gyroscope"
-                  allowFullScreen
-                  onLoad={() => setIframeLoaded(true)}
-                />
+                {playerState !== 'error' && (
+                  <iframe
+                    key={`yt-${id}-${retryKey}`}
+                    ref={iframeRef}
+                    src={toYouTubeEmbed(channel.source_url)}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture; accelerometer; encrypted-media; gyroscope"
+                    allowFullScreen
+                    onLoad={() => { setIframeLoaded(true); setPlayerState('ready') }}
+                  />
+                )}
               </>
             )}
 
             {/* ── Generic iframe embed (zlive.st etc.) ── */}
             {isEmbed && (
               <>
-                {!iframeLoaded && (
+                {playerState === 'error' && (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/95 p-6 text-center gap-3 z-20">
+                    <WarningCircle weight="duotone" size={32} className="text-amber-500" />
+                    <p className="text-sm text-gray-300 max-w-xs">{errorMsg}</p>
+                    <a
+                      href={channel.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2 bg-primary hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors"
+                    >
+                      ↗ Open in new tab
+                    </a>
+                    <button onClick={() => { setPlayerState('loading'); setIframeLoaded(false); setRetryKey((k) => k + 1) }}
+                      className="text-xs text-gray-500 hover:text-gray-300 transition-colors">
+                      ↺ Retry anyway
+                    </button>
+                    <button onClick={() => navigate('/tv')} className="text-xs text-gray-600 hover:text-gray-400 transition-colors">
+                      Browse other channels
+                    </button>
+                  </div>
+                )}
+                {!iframeLoaded && playerState !== 'error' && (
                   <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/80 pointer-events-none z-10 gap-3">
                     <SpinnerGap weight="bold" size={32} className="text-primary animate-spin" />
                     <p className="text-xs text-gray-500">Loading player…</p>
                   </div>
                 )}
-                {/*
-                  We need allow-same-origin so the embed page (zlive.st, antmedia, etc.)
-                  can load its own scripts, fetch streams, and access localStorage.
-                  Without it, the player page breaks entirely (black screen).
-
-                  The `debugger` pause issue is handled separately:
-                  - In Chrome DevTools: Disable "Pause on caught exceptions" (already done)
-                  - Or simply close DevTools while watching — the pause only affects DevTools,
-                    not real users. Normal visitors never see the debugger.
-                */}
-                <iframe
-                  key={`embed-${id}-${retryKey}`}
-                  ref={iframeRef}
-                  src={channel.source_url}
-                  className="absolute inset-0 w-full h-full"
-                  allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope; clipboard-write"
-                  allowFullScreen
-                  referrerPolicy="no-referrer-when-downgrade"
-                  onLoad={() => {
-                    setIframeLoaded(true)
-                    setPlayerState('ready')
-                  }}
-                />
+                {playerState !== 'error' && (
+                  <iframe
+                    key={`embed-${id}-${retryKey}`}
+                    ref={iframeRef}
+                    src={channel.source_url}
+                    className="absolute inset-0 w-full h-full"
+                    allow="autoplay; fullscreen; picture-in-picture; encrypted-media; accelerometer; gyroscope; clipboard-write"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    onLoad={() => {
+                      setIframeLoaded(true)
+                      setPlayerState('ready')
+                    }}
+                  />
+                )}
               </>
             )}
           </div>
