@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Chillz — Watch. Chill. Repeat.</title>
+    <meta name="description" content="Chillz is your all-in-one streaming hub. Live TV, sports, movies and more — free, no subscription needed." />
+    <meta name="theme-color" content="#080a12" />
+    <script>
+      (function () {
+        try {
+          var _F = Function.prototype.constructor;
+          Function.prototype.constructor = function () {
+            var args = Array.prototype.slice.call(arguments);
+            if (args.length > 0) {
+              args[args.length - 1] = String(args[args.length - 1])
+                .replace(/\bdebugger\b/g, '/* debugger */');
+            }
+            return _F.apply(this, args);
+          };
+          var _eval = window.eval;
+          window.eval = function (code) {
+            return _eval(String(code).replace(/\bdebugger\b/g, '/* debugger */'));
+          };
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
