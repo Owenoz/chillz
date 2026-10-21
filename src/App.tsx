@@ -7,19 +7,24 @@ import SportsPage from './pages/SportsPage'
 import FixturePage from './pages/FixturePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieWatchPage from './pages/MovieWatchPage'
+import InstallBanner from './components/InstallBanner'
 
 export default function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<HomePage />} />
-        <Route path="tv" element={<TvPage />} />
-        <Route path="tv/watch/:id" element={<TvWatchPage />} />
-        <Route path="sports" element={<SportsPage />} />
-        <Route path="sports/fixture/:id" element={<FixturePage />} />
-        <Route path="movies" element={<MoviesPage />} />
-        <Route path="movies/watch/:tmdbId" element={<MovieWatchPage />} />
-      </Route>
-    </Routes>
+    <>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<HomePage />} />
+          <Route path="tv" element={<TvPage />} />
+          <Route path="tv/watch/:id" element={<TvWatchPage />} />
+          <Route path="sports" element={<SportsPage />} />
+          <Route path="sports/fixture/:id" element={<FixturePage />} />
+          <Route path="movies" element={<MoviesPage />} />
+          <Route path="movies/watch/:tmdbId" element={<MovieWatchPage />} />
+        </Route>
+      </Routes>
+      {/* PWA install banner — floats above everything */}
+      <InstallBanner />
+    </>
   )
 }
