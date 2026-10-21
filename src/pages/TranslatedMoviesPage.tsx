@@ -1,142 +1,246 @@
-import { useState, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Translate, Play, MagnifyingGlass, X,
-  Funnel, ArrowRight, Microphone,
+  MagnifyingGlass, X, Funnel, SpinnerGap,
+  Microphone, Play, Translate,
 } from '@phosphor-icons/react'
-import moviesData from '../data/translated_movies.json'
 
-interface TranslatedMovie {
+export interface VJMovie {
   id: string
-  title: string
-  vj: string
-  genre: string[]
-  year: number
-  language: string
-  description: string
-  poster_url: string
-  source_url: string
-  source_site: string
-  embed_url: string
-  category: string
+  t: string   // title
+  v: string   // vj
+  p: string   // poster_url
+  y: number   // year
+  u: string   // page_url
 }
-
-const movies = moviesData as TranslatedMovie[]
-
-const ALL_VJS = ['All', ...Array.from(new Set(movies.map(m => m.vj))).sort()]
-const ALL_GENRES = ['All', 'Action', 'Drama', 'Thriller', 'Comedy', 'Horror', 'Sci-Fi', 'Romance']
-const ALL_SOURCES = ['All', ...Array.from(new Set(movies.map(m => m.source_site))).sort()]
 
 const VJ_COLORS: Record<string, string> = {
-  'VJ Junior': '#8B5CF6',
-  'VJ Ice P':  '#3B82F6',
-  'VJ Emmy':   '#10B981',
-  'VJ Muba':   '#F59E0B',
-  'VJ Jingo':  '#EF4444',
-  'VJ Kevo':   '#EC4899',
-  'VJ Mark':   '#6366F1',
+  'VJ Junior':    '#8B5CF6',
+  'VJ Ice P':     '#3B82F6',
+  'VJ Emmy':      '#10B981',
+  'VJ Jingo':     '#EF4444',
+  'VJ Muba':      '#F59E0B',
+  'VJ Soul':      '#06B6D4',
+  'VJ Ulio':      '#EC4899',
+  'VJ Kevo':      '#6366F1',
+  'VJ Ham':       '#84CC16',
+  'VJ Neil':      '#F97316',
+  'VJ Jovan':     '#A78BFA',
+  'VJ Mark':      '#2DD4BF',
+  'VJ Shield':    '#FB7185',
+  'VJ Kevin':     '#FCD34D',
+  'VJ Uncle T':   '#C084FC',
+  'VJ Musa':      '#67E8F9',
+  'VJ Tonny':     '#86EFAC',
+  'VJ Mosco':     '#FCA5A5',
+  'VJ Baros':     '#93C5FD',
+  'VJ Kamil':     '#FDE68A',
+  'Unknown VJ':   '#6B7280',
 }
+
+const PAGE_SIZE = 40
 
 export default function TranslatedMoviesPage() {
   const navigate = useNavigate()
+  const [allMovies, setAllMovies] = useState<VJMovie[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [selectedVj, setSelectedVj] = useState('All')
-  const [selectedGenre, setSelectedGenre] = useState('All')
-  const [selectedSource, setSelectedSource] = useState('All')
+  const [page, setPage] = useState(1)
+  const loaderRef = useRef<HTMLDivElement>(null)
 
+  // Load dataset once
+  useEffect(() => {
+    fetch('/vj-movies.json')
+      .then(r => r.json())
+      .then((data: VJMovie[]) => {
+        setAllMovies(data)
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
+  }, [])
+
+  // Derive VJ list from data
+  const vjList = useMemo(() => {
+    const counts: Record<string, number> = {}
+    allMovies.forEach(m => { counts[m.v] = (counts[m.v] || 0) + 1 })
+    return Object.entries(counts)
+      .filter(([vj]) => vj !== 'Unknown VJ')
+      .sort((a, b) => b[1] - a[1])
+      .map(([vj, count]) => ({ vj, count }))
+  }, [allMovies])
+
+  // Filter
   const filtered = useMemo(() => {
-    return movies.filter(m => {
-      const q = search.toLowerCase()
-      const matchSearch = !q ||
-        m.title.toLowerCase().includes(q) ||
-        m.vj.toLowerCase().includes(q) ||
-        m.description.toLowerCase().includes(q)
-      const matchVj = selectedVj === 'All' || m.vj === selectedVj
-      const matchGenre = selectedGenre === 'All' || m.genre.includes(selectedGenre)
-      const matchSource = selectedSource === 'All' || m.source_site === selectedSource
-      return matchSearch && matchVj && matchGenre && matchSource
+    const q = search.toLowerCase().trim()
+    return allMovies.filter(m => {
+      if (m.v === 'Unknown VJ' && !search && selectedVj === 'All') return false
+      const matchVj = selectedVj === 'All' || m.v === selectedVj
+      const matchSearch = !q || m.t.toLowerCase().includes(q) || m.v.toLowerCase().includes(q)
+      return matchVj && matchSearch
     })
-  }, [search, selectedVj, selectedGenre, selectedSource])
+  }, [allMovies, search, selectedVj])
 
-  const isFiltering = search || selectedVj !== 'All' || selectedGenre !== 'All' || selectedSource !== 'All'
+  // Reset page on filter change
+  useEffect(() => { setPage(1) }, [search, selectedVj])
 
-  const clearFilters = () => {
-    setSearch('')
-    setSelectedVj('All')
-    setSelectedGenre('All')
-    setSelectedSource('All')
-  }
+  // Infinite scroll via IntersectionObserver
+  const loadMore = useCallback(() => {
+    if (page * PAGE_SIZE < filtered.length) setPage(p => p + 1)
+  }, [page, filtered.length])
 
-  // Group by VJ for the "browse by VJ" section
-  const byVj = ALL_VJS.filter(v => v !== 'All').map(vj => ({
-    vj,
-    count: movies.filter(m => m.vj === vj).length,
-    color: VJ_COLORS[vj] || '#8B5CF6',
-    sample: movies.find(m => m.vj === vj),
-  }))
+  useEffect(() => {
+    const el = loaderRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) loadMore()
+    }, { rootMargin: '300px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [loadMore])
+
+  const visible = filtered.slice(0, page * PAGE_SIZE)
+
+  // Hero: first movie with a poster from selected VJ
+  const hero = useMemo(() => {
+    return filtered.find(m => m.p) || filtered[0]
+  }, [filtered])
+
+  const clearFilters = () => { setSearch(''); setSelectedVj('All') }
+  const isFiltering = search || selectedVj !== 'All'
 
   return (
-    <div className="pb-24 md:pb-8">
+    <div className="pb-24 md:pb-8 min-h-screen">
 
-      {/* ── Hero ── */}
-      <div className="relative overflow-hidden border-b border-border/40">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-0 w-full h-full opacity-30"
-            style={{ background: 'radial-gradient(ellipse at 20% 50%, rgba(139,92,246,0.2), transparent 60%)' }} />
-          <div className="absolute top-0 right-0 w-96 h-64 opacity-20"
-            style={{ background: 'radial-gradient(ellipse at top right, rgba(236,72,153,0.3), transparent 70%)' }} />
-        </div>
+      {/* ── Cinematic Hero ── */}
+      {!loading && hero && (
+        <div
+          className="relative w-full overflow-hidden cursor-pointer group"
+          style={{ aspectRatio: '21/9', minHeight: 200, maxHeight: 460 }}
+          onClick={() => navigate(`/translated/${hero.id}`)}
+        >
+          {hero.p ? (
+            <img
+              src={hero.p}
+              alt={hero.t}
+              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            />
+          ) : (
+            <div className="absolute inset-0"
+              style={{ background: `linear-gradient(135deg, ${VJ_COLORS[hero.v] || '#6c63ff'}30, #0a0e1a)` }} />
+          )}
+          {/* Gradient overlays */}
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to right, rgba(10,14,26,0.95) 0%, rgba(10,14,26,0.5) 55%, rgba(10,14,26,0.1) 100%)'
+          }} />
+          <div className="absolute inset-0" style={{
+            background: 'linear-gradient(to top, rgba(10,14,26,1) 0%, rgba(10,14,26,0.3) 40%, transparent 70%)'
+          }} />
 
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-14">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="flex items-center gap-1.5 text-[10px] font-black tracking-[0.15em] text-primary-light uppercase bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
-              <Translate weight="duotone" size={11} /> Luganda VJ
-            </span>
-          </div>
-          <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight leading-none mb-3">
-            Translated<br />
-            <span style={{
-              background: 'linear-gradient(135deg, #a78bfa 0%, #8B5CF6 50%, #ec4899 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-            }}>Movies</span>
-          </h1>
-          <p className="text-gray-500 text-sm max-w-md mb-6">
-            Ugandan VJ-translated movies and series in Luganda — VJ Junior, VJ Ice P, VJ Emmy, VJ Muba and more.
-          </p>
-
-          {/* VJ quick-select pills */}
-          <div className="flex flex-wrap gap-2">
-            {byVj.map(({ vj, count, color }) => (
+          <div className="absolute inset-0 flex items-end px-5 pb-7 md:px-10 md:pb-10">
+            <div className="max-w-lg">
+              {/* VJ badge */}
+              <div className="flex items-center gap-2 mb-3">
+                <span
+                  className="flex items-center gap-1.5 text-[10px] font-black tracking-[0.15em] uppercase px-2.5 py-1 rounded-full"
+                  style={{
+                    background: `${VJ_COLORS[hero.v] || '#8B5CF6'}25`,
+                    border: `1px solid ${VJ_COLORS[hero.v] || '#8B5CF6'}50`,
+                    color: VJ_COLORS[hero.v] || '#a78bfa',
+                  }}
+                >
+                  <Microphone weight="duotone" size={10} />
+                  {hero.v}
+                </span>
+                {hero.y > 0 && <span className="text-[10px] text-gray-500 font-medium">{hero.y}</span>}
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-4">
+                {hero.t}
+              </h2>
               <button
-                key={vj}
-                onClick={() => setSelectedVj(selectedVj === vj ? 'All' : vj)}
-                className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all group-hover:scale-105"
                 style={{
-                  background: selectedVj === vj ? `${color}25` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${selectedVj === vj ? color + '60' : 'rgba(255,255,255,0.08)'}`,
-                  color: selectedVj === vj ? color : '#9ca3af',
+                  background: `linear-gradient(135deg, ${VJ_COLORS[hero.v] || '#6c63ff'}, ${VJ_COLORS[hero.v] || '#4f46e5'}cc)`,
+                  boxShadow: `0 8px 24px ${VJ_COLORS[hero.v] || '#6c63ff'}40`,
                 }}
               >
-                <Microphone weight="duotone" size={11} style={{ color }} />
-                {vj}
-                <span className="text-[9px] opacity-60 font-semibold">{count}</span>
+                <Play weight="fill" size={14} /> Watch Now
               </button>
-            ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 space-y-6">
 
-        {/* ── Search + filters ── */}
-        <div className="flex flex-col sm:flex-row gap-3">
-          {/* Search */}
+        {/* ── Header ── */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-black text-white flex items-center gap-2.5 tracking-tight">
+              <Translate weight="duotone" size={22} className="text-primary-light" />
+              VJ Movies
+            </h1>
+            <p className="text-gray-600 text-sm mt-0.5">
+              {loading ? 'Loading…' : `${filtered.length.toLocaleString()} movies in Luganda`}
+            </p>
+          </div>
+          <div className="hidden sm:flex items-center gap-4 text-right">
+            <div>
+              <p className="text-xl font-black text-white">{allMovies.length.toLocaleString()}</p>
+              <p className="text-[10px] text-gray-700 uppercase tracking-wider">Total</p>
+            </div>
+            <div className="w-px h-8 bg-border" />
+            <div>
+              <p className="text-xl font-black text-white">{vjList.length}</p>
+              <p className="text-[10px] text-gray-700 uppercase tracking-wider">VJs</p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── VJ pill selector ── */}
+        {!loading && (
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+            <button
+              onClick={() => setSelectedVj('All')}
+              className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+              style={{
+                background: selectedVj === 'All' ? 'rgba(139,92,246,0.2)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${selectedVj === 'All' ? 'rgba(139,92,246,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                color: selectedVj === 'All' ? '#a78bfa' : '#9ca3af',
+              }}
+            >
+              All VJs
+            </button>
+            {vjList.slice(0, 16).map(({ vj, count }) => {
+              const color = VJ_COLORS[vj] || '#8B5CF6'
+              const active = selectedVj === vj
+              return (
+                <button
+                  key={vj}
+                  onClick={() => setSelectedVj(active ? 'All' : vj)}
+                  className="shrink-0 flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all"
+                  style={{
+                    background: active ? `${color}25` : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${active ? color + '55' : 'rgba(255,255,255,0.08)'}`,
+                    color: active ? color : '#9ca3af',
+                  }}
+                >
+                  <Microphone weight={active ? 'fill' : 'regular'} size={10} style={{ color }} />
+                  {vj}
+                  <span style={{ color: active ? color : '#4b5563', opacity: 0.7 }} className="text-[9px] font-semibold">{count}</span>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* ── Search + filter row ── */}
+        <div className="flex gap-3">
           <div className="relative flex-1">
             <MagnifyingGlass weight="bold" size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search movies, VJs…"
+              placeholder="Search movies or VJ…"
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full bg-surface border border-border rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-primary/60 transition-colors"
@@ -147,54 +251,41 @@ export default function TranslatedMoviesPage() {
               </button>
             )}
           </div>
-
-          {/* Genre */}
-          <div className="relative">
-            <Funnel weight="duotone" size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 pointer-events-none z-10" />
-            <select
-              value={selectedGenre}
-              onChange={e => setSelectedGenre(e.target.value)}
-              className="bg-surface border border-border rounded-xl pl-8 pr-8 py-2.5 text-sm text-white focus:outline-none focus:border-primary/60 appearance-none cursor-pointer"
-            >
-              {ALL_GENRES.map(g => <option key={g} value={g}>{g}</option>)}
-            </select>
-          </div>
-
-          {/* Source */}
-          <div className="relative">
-            <select
-              value={selectedSource}
-              onChange={e => setSelectedSource(e.target.value)}
-              className="bg-surface border border-border rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-primary/60 appearance-none cursor-pointer"
-            >
-              {ALL_SOURCES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
-        {/* Results bar */}
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-gray-600">
-            <span className="text-white font-semibold">{filtered.length}</span> movies
-            {selectedVj !== 'All' && <span className="ml-1 text-primary-light">· {selectedVj}</span>}
-          </p>
           {isFiltering && (
-            <button onClick={clearFilters} className="text-xs text-gray-600 hover:text-white flex items-center gap-1 transition-colors">
-              <X weight="bold" size={11} /> Clear
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1.5 px-4 py-2.5 bg-surface border border-border hover:border-white/20 text-gray-500 hover:text-white text-sm font-medium rounded-xl transition-all"
+            >
+              <X weight="bold" size={12} /> Clear
             </button>
           )}
         </div>
 
-        {/* ── Grid ── */}
-        {filtered.length === 0 ? (
-          <div className="text-center py-20 space-y-3">
-            <Translate weight="duotone" size={40} className="text-gray-700 mx-auto" />
-            <p className="text-gray-600 font-medium">No movies found</p>
-            <button onClick={clearFilters} className="text-primary-light text-sm hover:underline">Clear filters</button>
+        {/* ── Results count ── */}
+        {!loading && (
+          <p className="text-xs text-gray-700">
+            Showing <span className="text-white font-semibold">{Math.min(visible.length, filtered.length).toLocaleString()}</span> of <span className="text-white font-semibold">{filtered.length.toLocaleString()}</span>
+            {selectedVj !== 'All' && <span className="ml-1" style={{ color: VJ_COLORS[selectedVj] }}>· {selectedVj}</span>}
+          </p>
+        )}
+
+        {/* ── Loading skeleton ── */}
+        {loading && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            {Array.from({ length: 24 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[2/3] rounded-xl bg-surface-2 mb-2" />
+                <div className="h-3 bg-surface-2 rounded w-3/4 mb-1" />
+                <div className="h-2.5 bg-surface-2 rounded w-1/2" />
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
-            {filtered.map(movie => (
+        )}
+
+        {/* ── Movie Grid ── */}
+        {!loading && visible.length > 0 && (
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
+            {visible.map(movie => (
               <MovieCard
                 key={movie.id}
                 movie={movie}
@@ -204,85 +295,74 @@ export default function TranslatedMoviesPage() {
           </div>
         )}
 
-        {/* ── Source sites banner ── */}
-        <div className="rounded-2xl border border-white/6 p-6 space-y-4"
-          style={{
-            background: 'linear-gradient(135deg, rgba(139,92,246,0.06), rgba(10,14,26,0.8))',
-            boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)',
-          }}>
-          <div className="flex items-center gap-2">
-            <Translate weight="duotone" size={16} className="text-primary-light" />
-            <h3 className="text-sm font-bold text-white">Powered by Ugandan VJ Sites</h3>
+        {/* ── Empty ── */}
+        {!loading && visible.length === 0 && (
+          <div className="text-center py-24 space-y-3">
+            <Funnel weight="duotone" size={40} className="text-gray-700 mx-auto" />
+            <p className="text-gray-500 font-medium">No movies found</p>
+            <button onClick={clearFilters} className="text-primary-light text-sm hover:underline">Clear filters</button>
           </div>
-          <p className="text-xs text-gray-600 leading-relaxed">
-            Content is served from established Ugandan VJ movie platforms. Click any movie to watch on the source site.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {[
-              { name: 'UgaFlix', url: 'https://ugaflix.com' },
-              { name: 'UGMovieBox', url: 'https://www.ugmoviebox.com' },
-              { name: 'FlixOn', url: 'https://www.flixon.net' },
-              { name: 'VJStream', url: 'https://vjstream.online' },
-              { name: 'MunnoUG', url: 'https://munnoug.com' },
-              { name: 'UnrulyMovies', url: 'https://unrulymovies.com' },
-              { name: 'MoviesUG', url: 'https://movies.ug' },
-              { name: 'KStream', url: 'https://stream.kit.africa' },
-            ].map(({ name, url }) => (
-              <a
-                key={name}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 text-xs text-gray-500 hover:text-white bg-white/4 border border-white/6 hover:border-white/14 px-3 py-1.5 rounded-full transition-all"
-              >
-                {name} <ArrowRight size={10} />
-              </a>
-            ))}
-          </div>
+        )}
+
+        {/* ── Infinite scroll trigger ── */}
+        <div ref={loaderRef} className="flex justify-center py-4">
+          {!loading && page * PAGE_SIZE < filtered.length && (
+            <SpinnerGap weight="bold" size={20} className="text-gray-700 animate-spin" />
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-/* ── Movie Card ─────────────────────────────────────────── */
-function MovieCard({ movie, onClick }: { movie: TranslatedMovie; onClick: () => void }) {
-  const vjColor = VJ_COLORS[movie.vj] || '#8B5CF6'
+/* ── Movie Card ──────────────────────────────────────────── */
+function MovieCard({ movie, onClick }: { movie: VJMovie; onClick: () => void }) {
+  const color = VJ_COLORS[movie.v] || '#8B5CF6'
+  const [imgError, setImgError] = useState(false)
 
   return (
     <div onClick={onClick} className="group cursor-pointer">
-      <div className="relative aspect-[2/3] rounded-xl overflow-hidden bg-surface-2 mb-2">
-        <img
-          src={movie.poster_url}
-          alt={movie.title}
-          loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
-        />
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-end justify-end p-3 gap-2">
-          <div className="self-center flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-lg">
-            <Play weight="fill" size={10} /> Watch
+      <div className="relative aspect-[2/3] rounded-xl overflow-hidden mb-2"
+        style={{ background: `linear-gradient(135deg, ${color}20, #0d0b1a)` }}>
+
+        {movie.p && !imgError ? (
+          <img
+            src={movie.p}
+            alt={movie.t}
+            loading="lazy"
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Microphone weight="duotone" size={28} style={{ color, opacity: 0.4 }} />
+          </div>
+        )}
+
+        {/* Dark gradient at bottom */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+        {/* Play button on hover */}
+        <div className="absolute inset-0 flex items-end justify-center pb-3 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div
+            className="flex items-center gap-1.5 text-[11px] font-bold text-white px-3 py-1.5 rounded-full"
+            style={{ background: color, boxShadow: `0 4px 12px ${color}60` }}
+          >
+            <Play weight="fill" size={9} /> Play
           </div>
         </div>
+
         {/* VJ badge */}
         <div
-          className="absolute top-2 left-2 text-[9px] font-black px-2 py-0.5 rounded-full tracking-wider"
-          style={{ background: `${vjColor}30`, border: `1px solid ${vjColor}50`, color: vjColor }}
+          className="absolute top-1.5 left-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-md tracking-wider leading-none"
+          style={{ background: `${color}30`, border: `1px solid ${color}50`, color }}
         >
-          {movie.vj}
-        </div>
-        {/* Source badge */}
-        <div className="absolute bottom-2 right-2 text-[8px] font-semibold text-gray-400 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded">
-          {movie.source_site}
+          {movie.v.replace('VJ ', '')}
         </div>
       </div>
-      <p className="text-[12px] font-semibold text-white truncate tracking-tight">{movie.title}</p>
-      <p className="text-[10px] text-gray-600 mt-0.5 flex items-center gap-1.5">
-        <span>{movie.year}</span>
-        <span className="text-gray-700">·</span>
-        <span className="truncate">{movie.genre[0]}</span>
-      </p>
+
+      <p className="text-[11px] font-semibold text-white truncate tracking-tight leading-tight">{movie.t}</p>
+      {movie.y > 0 && <p className="text-[9px] text-gray-700 mt-0.5">{movie.y}</p>}
     </div>
   )
 }
