@@ -7,6 +7,8 @@ import SportsPage from './pages/SportsPage'
 import FixturePage from './pages/FixturePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieWatchPage from './pages/MovieWatchPage'
+import TranslatedMoviesPage from './pages/TranslatedMoviesPage'
+import TranslatedWatchPage from './pages/TranslatedWatchPage'
 import InstallBanner from './components/InstallBanner'
 
 export default function App() {
@@ -21,9 +23,10 @@ export default function App() {
           <Route path="sports/fixture/:id" element={<FixturePage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/watch/:tmdbId" element={<MovieWatchPage />} />
+          <Route path="translated" element={<TranslatedMoviesPage />} />
+          <Route path="translated/:id" element={<TranslatedWatchPage />} />
         </Route>
       </Routes>
-      {/* PWA install banner — floats above everything */}
       <InstallBanner />
     </>
   )
