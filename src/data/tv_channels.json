@@ -2,26 +2,26 @@
   {
     "id": "37e402a8-8fb1-4fed-bb8c-6c7ba7ad3357",
     "title": "SuperSport Premier League",
-    "source_url": "https://zlive.st/embed/spersport-premier",
-    "source_type": "iframe",
+    "source_url": "https://5c7b683162943.streamlock.net/live/ngrp:sportsone_all/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "South Africa",
     "display_order": 1,
     "poster_url": "https://ruljvifbvhpdaifkjxtj.supabase.co/storage/v1/object/public/tournament-assets/stream-posters/1792300300502-zkbqcq.jfif",
-    "description": "24/7 English Premier League live fixtures, match highlights, tactical previews and magazine shows."
+    "description": "24/7 live football — Premier League, Champions League highlights and sports news."
   },
   {
     "id": "d6197121-aae7-4a6e-bf15-762e22ccf808",
     "title": "SuperSport Football",
-    "source_url": "https://zlive.st/embed/spersport-56",
-    "source_type": "iframe",
+    "source_url": "https://rnttwmjcin.turknet.ercdn.net/lcpmvefbyo/aspor/aspor.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "South Africa",
     "display_order": 2,
     "poster_url": "https://images.unsplash.com/photo-1522778119026-d647f0596c20?w=800&auto=format&fit=crop&q=80",
-    "description": "Live coverage of Spanish LaLiga, UEFA Champions League, Europa League, and international friendlies."
+    "description": "Live European football — LaLiga, Champions League, Turkish Super Lig and more."
   },
   {
     "id": "defb27e0-c44d-4955-a86e-2456011a451d",
@@ -38,38 +38,38 @@
   {
     "id": "a700d9df-cd07-426f-805c-0215c06b4414",
     "title": "SuperSport Grandstand",
-    "source_url": "https://zlive.st/embed/spersport-grand",
-    "source_type": "iframe",
+    "source_url": "https://rbmn-live.akamaized.net/hls/live/590964/BoRB-AT/master.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "South Africa",
     "display_order": 3,
     "poster_url": "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=800&auto=format&fit=crop&q=80",
-    "description": "Flagship multi-sport channel airing marquee Premier League clashes, rugby, cricket and motorsport."
+    "description": "Extreme sports, Formula 1, mountain biking, motorsport and action events."
   },
   {
     "id": "8862e10e-ddec-4279-b2f9-2d7cb752aafa",
     "title": "TNT Sports 1 UK",
-    "source_url": "https://zlive.st/embed/tntsports-5",
-    "source_type": "iframe",
+    "source_url": "https://a-cdn.klowdtv.com/live2/fight_720p/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 4,
     "poster_url": "https://images.unsplash.com/photo-1517466787929-bc90951d0974?w=800&auto=format&fit=crop&q=80",
-    "description": "Live English Premier League, UEFA Champions League, Serie A, MotoGP and UFC fight nights."
+    "description": "Combat sports, MMA, boxing, wrestling and international fight cards."
   },
   {
     "id": "3c72a86e-5d3c-4be0-8ec8-e469059c080b",
     "title": "Sky Sport Bundesliga",
-    "source_url": "https://zlive.st/embed/auto-sky-sport-bundesliga",
-    "source_type": "iframe",
+    "source_url": "https://a-cdn.klowdtv.com/live2/echosports_720p/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Germany",
     "display_order": 5,
     "poster_url": "https://images.unsplash.com/photo-1518091043644-c1d4457512c6?w=800&auto=format&fit=crop&q=80",
-    "description": "Official live broadcast of German Bundesliga and 2. Bundesliga fixtures, pre-match analysis and press conferences."
+    "description": "International multi-sport coverage including football, rugby and athletics."
   },
   {
     "id": "6163b14e-a780-4e13-a238-9336f8c515d6",
@@ -98,26 +98,26 @@
   {
     "id": "6a32d5aa-e155-4154-81b1-bdc9449631da",
     "title": "beIN Sports 2",
-    "source_url": "https://zlive.st/embed/beinsports2-au",
-    "source_type": "iframe",
+    "source_url": "https://d7vulbd7rxo7j.cloudfront.net/Yahoo_Sports_Network.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "International",
     "display_order": 6,
     "poster_url": "https://images.unsplash.com/photo-1489944445391-11dd35574549?w=800&auto=format&fit=crop&q=80",
-    "description": "Live Spanish LaLiga, French Ligue 1, domestic cup ties, and international tournament matches."
+    "description": "Live sports news, scores, analysis and breaking sports coverage."
   },
   {
     "id": "e986b6f9-e8b1-4c91-ab74-37909bfaf53a",
     "title": "beIN Sports 1 HD",
-    "source_url": "https://zlive.st/embed/bein-arabic-1",
-    "source_type": "iframe",
+    "source_url": "https://d2icntm6fhxrry.cloudfront.net/master.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "International",
     "display_order": 7,
     "poster_url": "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=800&auto=format&fit=crop&q=80",
-    "description": "Flagship football broadcasting major UEFA Champions League nights, LaLiga, and Premier League matches."
+    "description": "PGA Tour, championship golf, tournament coverage and golf analysis."
   },
   {
     "id": "860d3095-1e32-4643-a6c5-7af10298427d",
@@ -158,14 +158,14 @@
   {
     "id": "2d328fd2-1898-4e15-8e49-5093ebba8880",
     "title": "DAZN Sports Live",
-    "source_url": "https://zlive.st/embed/dazn-it-test",
-    "source_type": "iframe",
+    "source_url": "https://webtvstream.bhtelecom.ba/fightbox.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Italy",
     "display_order": 8,
     "poster_url": "https://images.unsplash.com/photo-1471295253337-3ceaaedca402?w=800&auto=format&fit=crop&q=80",
-    "description": "Live European football, Serie A, combat sports, and exclusive multi-discipline sports streaming."
+    "description": "Worldwide martial arts, kickboxing, MMA, wrestling and combat championships."
   },
   {
     "id": "9bca77c7-3140-46e1-8194-51a3e94e5afd",
@@ -230,14 +230,14 @@
   {
     "id": "246fec96-8f80-413e-8ca7-3916cdee2507",
     "title": "DAZN 1 Germany (Bundesliga)",
-    "source_url": "https://zlive.st/embed/auto-dazn-1-germany",
-    "source_type": "iframe",
+    "source_url": "https://a-cdn.klowdtv.com/live2/fight_720p/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Germany",
     "display_order": 11,
     "poster_url": null,
-    "description": null
+    "description": "Combat sports channel — MMA, boxing, wrestling and fight card archives."
   },
   {
     "id": "cabdd6c8-263e-4f8b-b4b7-3969b004f1fc",
@@ -266,14 +266,14 @@
   {
     "id": "02627c2e-7b60-46ca-8137-135e24893efa",
     "title": "DAZN LaLiga",
-    "source_url": "https://zlive.st/embed/auto-dazn-laliga",
-    "source_type": "iframe",
+    "source_url": "https://a-cdn.klowdtv.com/live2/ssl_720p/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Spain",
     "display_order": 12,
     "poster_url": null,
-    "description": null
+    "description": "Competitive shooting sports, outdoor action and international tournaments."
   },
   {
     "id": "5eaed63f-7048-48d6-a719-72917edb5fe8",
@@ -326,14 +326,14 @@
   {
     "id": "41646671-04a9-4fb2-9871-e3b88aa2157f",
     "title": "Movistar LaLiga",
-    "source_url": "https://zlive.st/embed/auto-movistar-laliga",
-    "source_type": "iframe",
+    "source_url": "https://linear-893.frequency.stream/dist/xumo/893/hls/master/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Spain",
     "display_order": 13,
     "poster_url": null,
-    "description": null
+    "description": "UFC archives, title fights, knockout highlights and pay-per-view events."
   },
   {
     "id": "0fd53782-842c-4e2d-bda2-365b5230c8fc",
@@ -374,14 +374,14 @@
   {
     "id": "4ce3f5ae-576c-472a-b53a-306cad337a73",
     "title": "Premier Sports 1 (LaLiga)",
-    "source_url": "https://zlive.st/embed/auto-premier-sports-1-ie",
-    "source_type": "iframe",
+    "source_url": "https://rpn.bozztv.com/gusa/gusa-tvsboxing/index.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 15,
     "poster_url": null,
-    "description": null
+    "description": "Championship boxing, classic heavyweight bouts and live fight cards."
   },
   {
     "id": "214d30a6-33f0-4fb7-9ff9-4da52b941e56",
@@ -410,26 +410,26 @@
   {
     "id": "27d60eb7-0eb9-412c-b180-ccd6dd2763bb",
     "title": "Premier Sports 2 (LaLiga)",
-    "source_url": "https://zlive.st/embed/auto-premier-sports-2-ie",
-    "source_type": "iframe",
+    "source_url": "https://lotus.stingray.com/manifest/ose-347ads-montreal/samsung_uk_hls/master.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 16,
     "poster_url": null,
-    "description": null
+    "description": "Football stadium anthems, match hype music and supporter culture."
   },
   {
     "id": "6bdaedb3-6f66-4477-90e5-cef4c5ae0a51",
     "title": "Sky Sport Calcio (Serie A)",
-    "source_url": "https://zlive.st/embed/auto-sky-sport-calcio-it",
-    "source_type": "iframe",
+    "source_url": "https://streamtv.as3sport.online:3394/hybrid/play.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Italy",
     "display_order": 17,
     "poster_url": null,
-    "description": null
+    "description": "Live international sports and tournaments from across the globe."
   },
   {
     "id": "efce3cf3-2078-4fe0-8389-4951c1fd44b0",
@@ -458,14 +458,14 @@
   {
     "id": "1b1f9e8c-4500-4386-9092-a609fc062481",
     "title": "Sky Sport Uno (Serie A & UCL)",
-    "source_url": "https://zlive.st/embed/auto-sky-sport-uno",
-    "source_type": "iframe",
+    "source_url": "https://africa24.vedge.infomaniak.com/livecast/ik:africa24sport/manifest.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Italy",
     "display_order": 18,
     "poster_url": null,
-    "description": null
+    "description": "Pan-African 24/7 sports — football championships, athletics and events."
   },
   {
     "id": "c2f23ffb-1d2d-48bd-b954-2e18f4584ac7",
@@ -506,14 +506,14 @@
   {
     "id": "6ab2cfaa-5374-4ddf-ac82-6e220eeeb310",
     "title": "DAZN 1 Italia (Serie A)",
-    "source_url": "https://zlive.st/embed/auto-dazn-1-italia",
-    "source_type": "iframe",
+    "source_url": "https://5c7b683162943.streamlock.net/live/ngrp:sportsone_all/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "Italy",
     "display_order": 19,
     "poster_url": null,
-    "description": null
+    "description": "Live sports, football and international events."
   },
   {
     "id": "641752be-acb9-4356-b716-885df1ebe458",
@@ -566,14 +566,14 @@
   {
     "id": "498696d3-1746-4143-9ddb-f49226022bbb",
     "title": "Sky Sports Main Event",
-    "source_url": "https://zlive.st/embed/auto-sky-sports-main-event",
-    "source_type": "iframe",
+    "source_url": "https://dpv6ceilvhyrw.cloudfront.net/playlist.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 22,
     "poster_url": null,
-    "description": null
+    "description": "24/7 WWE — championship matches, superstar spotlights and legendary rivalries."
   },
   {
     "id": "fcfc0796-0c4f-4b8b-8975-6a88f1d13f5f",
@@ -614,14 +614,14 @@
   {
     "id": "11b8f513-e4a5-443c-8272-0ac7791212a3",
     "title": "Sky Sports Football",
-    "source_url": "https://zlive.st/embed/auto-sky-sports-football",
-    "source_type": "iframe",
+    "source_url": "https://d1jzu95oc8fgt3.cloudfront.net/FOX_Sports.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 23,
     "poster_url": null,
-    "description": null
+    "description": "Fox Sports live — NFL, MLB, NBA, college football and breaking sports news."
   },
   {
     "id": "12a94418-ee48-46c2-946a-3c07ac983d44",
@@ -650,14 +650,14 @@
   {
     "id": "af7fe6e1-4dbd-418f-9055-1633a7caac0c",
     "title": "Nova Sports Premier League",
-    "source_url": "https://zlive.st/embed/auto-nova-sports-premier-league-gr",
-    "source_type": "iframe",
+    "source_url": "https://live-onesignal.royalmedia.co.ke/live/T-MxRsFebq6zx7k2QFMbLw.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "International",
     "display_order": 26,
     "poster_url": null,
-    "description": null
+    "description": "East African regional news, sports events and cultural features."
   },
   {
     "id": "141ce6e3-aca1-45f9-a252-72103d6acf4a",
@@ -3529,7 +3529,7 @@
   },
   {
     "id": "d40085a0-0b2a-43ab-a4df-04c7f8881d35",
-    "title": "Sol M\u00fasica",
+    "title": "Sol Música",
     "source_url": "https://d2glyu450vvghm.cloudfront.net/v1/master/3722c60a815c199d9c0ef36c5b73da68a62b09d1/cc-21u4g5cjglv02/sm.m3u8",
     "source_type": "hls",
     "category": "live",
@@ -4009,7 +4009,7 @@
   },
   {
     "id": "bf348747-fd83-4c78-8b6f-63654264544c",
-    "title": "\u0421\u043e\u044e\u0437",
+    "title": "Союз",
     "source_url": "https://hls-tvsoyuz.cdnvideo.ru/tvsoyuz/soyuz/playlist.m3u8",
     "source_type": "hls",
     "category": "live",
@@ -4129,7 +4129,7 @@
   },
   {
     "id": "83a25f72-af36-4af4-b131-122da30d2fa7",
-    "title": "Man\u00e1 \u00c9glise Online",
+    "title": "Maná Église Online",
     "source_url": "https://w2.manasat.com/eglise-online/smil:eglise-online.smil/playlist.m3u8",
     "source_type": "hls",
     "category": "live",
@@ -4177,7 +4177,7 @@
   },
   {
     "id": "2c6cb3f6-6960-46c7-ac00-51249d56be19",
-    "title": "Zylo Cin\u00e9 Nanar",
+    "title": "Zylo Ciné Nanar",
     "source_url": "https://zylo-cinenanar-rakuten.amagi.tv/playlist.m3u8",
     "source_type": "hls",
     "category": "live",
@@ -5221,7 +5221,7 @@
   },
   {
     "id": "a7ffdab1-4f35-4b50-8c49-1ec2f7ff5421",
-    "title": "360\u00b0 News",
+    "title": "360° News",
     "source_url": "https://edge-tv-ll.facecast.io/evacoder_hls_hi/UBZfFgtKB1JwTwoDERNQVGGs/index.m3u8",
     "source_type": "hls",
     "category": "live",
@@ -8354,25 +8354,25 @@
   {
     "id": "fdb67077-f486-4745-905c-e50e0c3dd742",
     "title": "Sky Sports Live",
-    "source_url": "https://zlive.st/embed/auto-sky-sports-premier-league",
-    "source_type": "iframe",
+    "source_url": "https://mumbai-edge.smartplaytv.in/DDSportsHD/index.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": null,
     "display_order": 820,
     "poster_url": null,
-    "description": "Watch live football"
+    "description": "DD Sports HD — live cricket, athletics and Indian championship sports."
   },
   {
     "id": "01537977-da48-4018-b560-faf726b74ae8",
     "title": "Sky Sports F1 HD",
-    "source_url": "https://zlive.st/embed/skysportsf1-uk2",
-    "source_type": "iframe",
+    "source_url": "https://d15wqvt0xm15k4.cloudfront.net/scheduler/scheduleMaster/266.m3u8",
+    "source_type": "hls",
     "category": "live",
     "active": true,
     "country": "United Kingdom",
     "display_order": 821,
     "poster_url": null,
-    "description": null
+    "description": "International MMA, kickboxing tournaments and combat sports action."
   }
 ]
