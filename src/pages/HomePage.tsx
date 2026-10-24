@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   Television, SoccerBall, FilmSlate, Play,
   ArrowRight, RadioButton, TrendUp,
-  Flame, Lightning, Sparkle, Translate,
+  Flame, Lightning, Sparkle,
 } from '@phosphor-icons/react'
 import channels from '../data/tv_channels.json'
 import fixtures from '../data/sports_fixtures.json'
@@ -152,13 +152,6 @@ export default function HomePage() {
               desc: 'Thousands of titles. No login, no sub — just stream.',
               color: '#38bdf8',
               path: '/movies',
-            },
-          {
-              icon: <Translate weight="duotone" size={22} />,
-              title: 'VJ Movies',
-              desc: 'Luganda-translated movies by VJ Junior, VJ Ice P, VJ Emmy & more.',
-              color: '#a78bfa',
-              path: '/translated',
             },
           ].map(({ icon, title, desc, color, path }) => (
             <div

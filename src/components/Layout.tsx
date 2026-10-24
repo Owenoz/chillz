@@ -5,18 +5,16 @@ import {
   Television,
   SoccerBall,
   FilmSlate,
-  Translate,
   List,
   X,
   Lightning,
 } from '@phosphor-icons/react'
 
 const navItems = [
-  { to: '/',           label: 'Home',        Icon: HouseSimple },
-  { to: '/tv',         label: 'Live TV',      Icon: Television  },
-  { to: '/sports',     label: 'Sports',       Icon: SoccerBall  },
-  { to: '/movies',     label: 'Movies',       Icon: FilmSlate   },
-  { to: '/translated', label: 'VJ Movies',    Icon: Translate   },
+  { to: '/',       label: 'Home',    Icon: HouseSimple },
+  { to: '/tv',     label: 'Live TV', Icon: Television  },
+  { to: '/sports', label: 'Sports',  Icon: SoccerBall  },
+  { to: '/movies', label: 'Movies',  Icon: FilmSlate   },
 ]
 
 export default function Layout() {
