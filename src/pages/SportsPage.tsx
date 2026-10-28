@@ -4,7 +4,11 @@ import {
   SoccerBall, MagnifyingGlass, X, ArrowClockwise, SpinnerGap,
 } from '@phosphor-icons/react'
 import { fetchLiveFixtures } from '../lib/sportsApi'
+import staticData from '../data/sports_fixtures.json'
 import type { Fixture } from '../data/types'
+
+// Use static JSON as the immediate fallback — never show empty
+const STATIC_FIXTURES = staticData as Fixture[]
 
 const STATUS_FILTERS = [
   { label: 'All',       value: 'all'      },
@@ -25,10 +29,10 @@ function sortFixtures(arr: Fixture[]) {
 
 export default function SportsPage() {
   const navigate = useNavigate()
-  // Start EMPTY — never show stale hardcoded data
-  const [fixtures, setFixtures]         = useState<Fixture[]>([])
+  // Show static fixtures immediately — replaced by live data when it loads
+  const [fixtures, setFixtures]         = useState<Fixture[]>(STATIC_FIXTURES)
   const [loading, setLoading]           = useState(true)
-  const [error, setError]               = useState(false)
+  const [liveLoaded, setLiveLoaded]     = useState(false)
   const [lastUpdated, setLastUpdated]   = useState<Date | null>(null)
   const [search, setSearch]             = useState('')
   const [competition, setCompetition]   = useState('All')
@@ -36,17 +40,15 @@ export default function SportsPage() {
 
   const load = useCallback(async () => {
     setLoading(true)
-    setError(false)
     try {
       const live = await fetchLiveFixtures()
       if (live.length > 0) {
         setFixtures(live)
+        setLiveLoaded(true)
         setLastUpdated(new Date())
-      } else {
-        setError(true)
       }
     } catch {
-      setError(true)
+      // keep static fixtures silently
     } finally {
       setLoading(false)
     }
@@ -191,19 +193,10 @@ export default function SportsPage() {
         </p>
 
         {/* ── Fixtures ── */}
-        {loading ? (
+        {loading && fixtures.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <SpinnerGap weight="bold" size={32} className="text-primary animate-spin" />
             <p className="text-gray-500 text-sm">Loading live fixtures…</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <SoccerBall weight="duotone" size={40} className="text-gray-700" />
-            <p className="text-white font-semibold">Could not load fixtures</p>
-            <p className="text-gray-500 text-sm text-center max-w-xs">Check your connection and try again.</p>
-            <button onClick={load} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
-              <ArrowClockwise weight="bold" size={14} /> Retry
-            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-2">
@@ -212,7 +205,15 @@ export default function SportsPage() {
             <button onClick={() => { setSearch(''); setCompetition('All'); setStatusFilter('all') }} className="text-primary-light text-sm hover:underline">Clear filters</button>
           </div>
         ) : (
-          <FixtureList fixtures={filtered} onSelect={f => navigate(`/sports/fixture/${f.id}`)} />
+          <>
+            {!liveLoaded && (
+              <p className="text-xs text-gray-600 flex items-center gap-2">
+                <SpinnerGap weight="bold" size={12} className="animate-spin text-primary" />
+                Updating to live data…
+              </p>
+            )}
+            <FixtureList fixtures={filtered} onSelect={f => navigate(`/sports/fixture/${f.id}`)} />
+          </>
         )}
       </div>
     </div>
