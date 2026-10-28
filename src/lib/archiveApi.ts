@@ -75,11 +75,15 @@ export async function fetchIARail(query: string, rows = 24, start = 0): Promise<
     `&fl[]=identifier,title,year,description,subject` +
     `&rows=${rows}&start=${start}&output=json`
 
-  const res = await fetch(url)
-  if (!res.ok) return []
-  const data = await res.json()
-  const docs: IAMovie[] = (data?.response?.docs ?? [])
-  return docs.map(normalise)
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const data = await res.json()
+    const docs: IAMovie[] = (data?.response?.docs ?? [])
+    return docs.map(normalise)
+  } catch {
+    return []
+  }
 }
 
 export async function searchIA(query: string, rows = 20): Promise<IAMovie[]> {
@@ -89,10 +93,14 @@ export async function searchIA(query: string, rows = 20): Promise<IAMovie[]> {
     `&fl[]=identifier,title,year,description,subject` +
     `&rows=${rows}&sort[]=downloads+desc&output=json`
 
-  const res = await fetch(url)
-  if (!res.ok) return []
-  const data = await res.json()
-  return (data?.response?.docs ?? []).map(normalise)
+  try {
+    const res = await fetch(url)
+    if (!res.ok) return []
+    const data = await res.json()
+    return (data?.response?.docs ?? []).map(normalise)
+  } catch {
+    return []
+  }
 }
 
 function normalise(doc: IAMovie): IAMovie {

@@ -1,48 +1,141 @@
 import type { Fixture } from '../data/types'
 
-const SUPABASE_URL = 'https://sykjlkbifrkmvlikyilv.supabase.co'
-const ANON_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN5a2psa2JpZnJrbXZsaWt5aWx2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwMzM2MDgsImV4cCI6MjEwNzYwOTYwOH0.o2_Xrr64RX4sjeZz_k4bHQCmaSzv9S8iEArg05jKYEg'
+const BASE = 'https://www.thesportsdb.com/api/v1/json/123'
 
-const HEADERS = {
-  apikey: ANON_KEY,
-  Authorization: `Bearer ${ANON_KEY}`,
-  'Content-Type': 'application/json',
+// Major leagues to fetch
+const LEAGUES = [
+  { id: 4328, name: 'Premier League' },
+  { id: 4335, name: 'La Liga' },
+  { id: 4332, name: 'Serie A' },
+  { id: 4334, name: 'Ligue 1' },
+  { id: 4331, name: 'Bundesliga' },
+  { id: 4480, name: 'Champions League' },
+  { id: 4399, name: 'Eredivisie' },
+  { id: 4418, name: 'Primeira Liga' },
+  { id: 4346, name: 'Scottish Premiership' },
+  { id: 4351, name: 'Brazilian Série A' },
+]
+
+interface SDBEvent {
+  idEvent: string
+  strLeague: string
+  strHomeTeam: string
+  strAwayTeam: string
+  strHomeTeamBadge?: string
+  strAwayTeamBadge?: string
+  dateEvent: string
+  strTime?: string
+  strTimestamp?: string
+  intHomeScore?: string | null
+  intAwayScore?: string | null
+  strStatus?: string
+  strVenue?: string
+  strRound?: string
+  intRound?: string
 }
 
-const FIELDS = [
-  'id', 'competition_id', 'competition_name', 'matchday', 'utc_date', 'status',
-  'home_team_id', 'home_team_name', 'home_team_crest',
-  'away_team_id', 'away_team_name', 'away_team_crest',
-  'home_score', 'away_score', 'winner',
-  'enabled', 'is_match_of_day', 'is_trending',
-  'venue', 'city', 'stage',
-].join(',')
+function mapStatus(e: SDBEvent): Fixture['status'] {
+  const s = (e.strStatus || '').toUpperCase()
+  if (['1H', 'HT', '2H', 'ET', 'LIVE', 'IN PLAY'].includes(s)) return 'IN_PLAY'
+  if (['FT', 'AET', 'PEN', 'FINISHED'].includes(s)) return 'FINISHED'
+  if (s === 'CANCELLED') return 'CANCELLED'
+  return 'SCHEDULED'
+}
+
+function mapWinner(e: SDBEvent): Fixture['winner'] {
+  const h = e.intHomeScore != null ? Number(e.intHomeScore) : null
+  const a = e.intAwayScore != null ? Number(e.intAwayScore) : null
+  if (h == null || a == null) return null
+  if (h > a) return 'HOME_TEAM'
+  if (a > h) return 'AWAY_TEAM'
+  return 'DRAW'
+}
+
+function toFixture(e: SDBEvent, leagueId: number): Fixture {
+  const date = e.strTimestamp
+    ? new Date(e.strTimestamp).toISOString()
+    : `${e.dateEvent}T${e.strTime || '00:00:00'}+00:00`
+
+  return {
+    id: Number(e.idEvent),
+    competition_id: leagueId,
+    competition_name: e.strLeague,
+    matchday: Number(e.intRound) || 0,
+    utc_date: date,
+    status: mapStatus(e),
+    home_team_id: 0,
+    home_team_name: e.strHomeTeam,
+    home_team_crest: e.strHomeTeamBadge || '',
+    away_team_id: 0,
+    away_team_name: e.strAwayTeam,
+    away_team_crest: e.strAwayTeamBadge || '',
+    home_score: e.intHomeScore != null && e.intHomeScore !== '' ? Number(e.intHomeScore) : null,
+    away_score: e.intAwayScore != null && e.intAwayScore !== '' ? Number(e.intAwayScore) : null,
+    winner: mapWinner(e),
+    enabled: true,
+    is_match_of_day: false,
+    is_trending: false,
+    venue: e.strVenue || null,
+    city: null,
+    stage: e.strRound || null,
+  }
+}
+
+async function fetchLeague(leagueId: number): Promise<Fixture[]> {
+  const [nextRes, pastRes] = await Promise.allSettled([
+    fetch(`${BASE}/eventsnextleague.php?id=${leagueId}`),
+    fetch(`${BASE}/eventspastleague.php?id=${leagueId}`),
+  ])
+
+  const fixtures: Fixture[] = []
+
+  if (nextRes.status === 'fulfilled' && nextRes.value.ok) {
+    const data = await nextRes.value.json()
+    const events: SDBEvent[] = data?.events || []
+    events.forEach(e => fixtures.push(toFixture(e, leagueId)))
+  }
+
+  if (pastRes.status === 'fulfilled' && pastRes.value.ok) {
+    const data = await pastRes.value.json()
+    const events: SDBEvent[] = data?.events || []
+    events.forEach(e => fixtures.push(toFixture(e, leagueId)))
+  }
+
+  return fixtures
+}
 
 export async function fetchLiveFixtures(): Promise<Fixture[]> {
-  const url =
-    `${SUPABASE_URL}/rest/v1/fixtures` +
-    `?select=${FIELDS}` +
-    `&enabled=eq.true` +
-    `&order=utc_date.asc` +
-    `&limit=500`
+  // Fetch all leagues in parallel
+  const results = await Promise.allSettled(
+    LEAGUES.map(l => fetchLeague(l.id))
+  )
 
-  const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) throw new Error(`Supabase error ${res.status}`)
-  const data = await res.json()
-  if (!Array.isArray(data)) throw new Error('Unexpected response shape')
-  return data as Fixture[]
+  const all: Fixture[] = []
+  results.forEach(r => {
+    if (r.status === 'fulfilled') all.push(...r.value)
+  })
+
+  // Deduplicate by id
+  const seen = new Set<number>()
+  return all.filter(f => {
+    if (seen.has(f.id)) return false
+    seen.add(f.id)
+    return true
+  })
 }
 
 export async function fetchFixtureById(id: number): Promise<Fixture | null> {
-  const url =
-    `${SUPABASE_URL}/rest/v1/fixtures` +
-    `?select=${FIELDS}` +
-    `&id=eq.${id}` +
-    `&limit=1`
-
-  const res = await fetch(url, { headers: HEADERS })
-  if (!res.ok) return null
-  const data = await res.json()
-  return Array.isArray(data) && data.length > 0 ? (data[0] as Fixture) : null
+  try {
+    const res = await fetch(`${BASE}/lookupevent.php?id=${id}`)
+    if (!res.ok) return null
+    const data = await res.json()
+    const events: SDBEvent[] = data?.events || []
+    if (!events.length) return null
+    const e = events[0]
+    // find league id from our list
+    const league = LEAGUES.find(l => l.name === e.strLeague) || LEAGUES[0]
+    return toFixture(e, league.id)
+  } catch {
+    return null
+  }
 }

@@ -4,14 +4,13 @@ import {
   SoccerBall, MagnifyingGlass, X, ArrowClockwise, SpinnerGap,
 } from '@phosphor-icons/react'
 import { fetchLiveFixtures } from '../lib/sportsApi'
-import staticFixtures from '../data/sports_fixtures.json'
 import type { Fixture } from '../data/types'
 
 const STATUS_FILTERS = [
-  { label: 'All',      value: 'all'      },
-  { label: '🔴 Live', value: 'live'      },
-  { label: 'Upcoming', value: 'upcoming' },
-  { label: 'Finished', value: 'finished' },
+  { label: 'All',       value: 'all'      },
+  { label: '🔴 Live',  value: 'live'      },
+  { label: 'Upcoming',  value: 'upcoming' },
+  { label: 'Finished',  value: 'finished' },
 ]
 
 function sortFixtures(arr: Fixture[]) {
@@ -26,23 +25,28 @@ function sortFixtures(arr: Fixture[]) {
 
 export default function SportsPage() {
   const navigate = useNavigate()
-  const [fixtures, setFixtures]     = useState<Fixture[]>(staticFixtures as Fixture[])
-  const [loading, setLoading]       = useState(true)
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
-  const [search, setSearch]         = useState('')
-  const [competition, setCompetition] = useState('All')
+  // Start EMPTY — never show stale hardcoded data
+  const [fixtures, setFixtures]         = useState<Fixture[]>([])
+  const [loading, setLoading]           = useState(true)
+  const [error, setError]               = useState(false)
+  const [lastUpdated, setLastUpdated]   = useState<Date | null>(null)
+  const [search, setSearch]             = useState('')
+  const [competition, setCompetition]   = useState('All')
   const [statusFilter, setStatusFilter] = useState('all')
 
   const load = useCallback(async () => {
     setLoading(true)
+    setError(false)
     try {
       const live = await fetchLiveFixtures()
       if (live.length > 0) {
         setFixtures(live)
         setLastUpdated(new Date())
+      } else {
+        setError(true)
       }
     } catch {
-      // keep static fallback silently
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -187,14 +191,25 @@ export default function SportsPage() {
         </p>
 
         {/* ── Fixtures ── */}
-        {loading && fixtures.length === 0 ? (
-          <div className="flex items-center justify-center py-20">
-            <SpinnerGap weight="bold" size={28} className="text-primary animate-spin" />
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <SpinnerGap weight="bold" size={32} className="text-primary animate-spin" />
+            <p className="text-gray-500 text-sm">Loading live fixtures…</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center py-24 gap-4">
+            <SoccerBall weight="duotone" size={40} className="text-gray-700" />
+            <p className="text-white font-semibold">Could not load fixtures</p>
+            <p className="text-gray-500 text-sm text-center max-w-xs">Check your connection and try again.</p>
+            <button onClick={load} className="flex items-center gap-2 px-5 py-2.5 bg-primary hover:bg-purple-700 text-white text-sm font-semibold rounded-xl transition-colors">
+              <ArrowClockwise weight="bold" size={14} /> Retry
+            </button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-20 space-y-2">
             <SoccerBall weight="duotone" size={40} className="text-gray-700 mx-auto" />
             <p className="text-gray-600">No fixtures match your filters</p>
+            <button onClick={() => { setSearch(''); setCompetition('All'); setStatusFilter('all') }} className="text-primary-light text-sm hover:underline">Clear filters</button>
           </div>
         ) : (
           <FixtureList fixtures={filtered} onSelect={f => navigate(`/sports/fixture/${f.id}`)} />
