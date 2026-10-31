@@ -7,6 +7,7 @@ import SportsPage from './pages/SportsPage'
 import FixturePage from './pages/FixturePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieWatchPage from './pages/MovieWatchPage'
+import ProfilePage from './pages/ProfilePage'
 import InstallBanner from './components/InstallBanner'
 
 export default function App() {
@@ -21,6 +22,7 @@ export default function App() {
           <Route path="sports/fixture/:id" element={<FixturePage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/watch/:identifier" element={<MovieWatchPage />} />
+          <Route path="profile" element={<ProfilePage />} />
         </Route>
       </Routes>
       <InstallBanner />

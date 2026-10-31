@@ -1,29 +1,35 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Television, SoccerBall, FilmSlate, Play,
-  ArrowRight, Lightning, RadioButton,
-} from '@phosphor-icons/react'
+import { Play, ArrowRight, Television, SoccerBall, FilmSlate, Star } from '@phosphor-icons/react'
 import channels from '../data/tv_channels.json'
-import type { TvChannel } from '../data/types'
+import type { TvChannel, Fixture } from '../data/types'
 import { fetchLiveFixtures } from '../lib/sportsApi'
-import type { Fixture } from '../data/types'
+import staticFixtures from '../data/sports_fixtures.json'
 
 const allChannels = channels as TvChannel[]
-
-// Uganda channels first (with poster), then others with poster
-const ugandaChannels = allChannels
-  .filter(c => c.active && c.poster_url && c.country === 'Uganda')
+const ugandaChannels = allChannels.filter(c => c.active && c.poster_url && c.country === 'Uganda')
   .sort((a, b) => a.display_order - b.display_order)
-
 const popularChannels = [
   ...ugandaChannels,
   ...allChannels.filter(c => c.active && c.poster_url && c.country !== 'Uganda')
     .sort((a, b) => a.display_order - b.display_order),
-].slice(0, 20)
-
-// Hero slides: Uganda channels with poster
+].slice(0, 18)
 const heroSlides = ugandaChannels.slice(0, 6)
+
+// Trending movies (static posters for display)
+const TRENDING = [
+  { title: 'John Wick', year: 2023, rating: 7.4, genre: 'Action', poster: 'https://images.unsplash.com/photo-1626814026160-2237a95fc5a0?w=300&auto=format&fit=crop&q=80' },
+  { title: 'The Batman', year: 2022, rating: 7.8, genre: 'Action', poster: 'https://images.unsplash.com/photo-1509347528160-9a9e33742cdb?w=300&auto=format&fit=crop&q=80' },
+  { title: 'Oppenheimer', year: 2023, rating: 8.4, genre: 'Drama', poster: 'https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=300&auto=format&fit=crop&q=80' },
+  { title: 'Venom', year: 2024, rating: 6.6, genre: 'Action', poster: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=300&auto=format&fit=crop&q=80' },
+]
+
+const TOP_LEAGUES = [
+  { name: 'Premier League', logo: 'https://crests.football-data.org/PL.png' },
+  { name: 'La Liga', logo: 'https://crests.football-data.org/PD.png' },
+  { name: 'Serie A', logo: 'https://crests.football-data.org/SA.png' },
+  { name: 'Champions League', logo: 'https://crests.football-data.org/CL.png' },
+]
 
 function timeUntil(utcDate: string): string {
   const diff = new Date(utcDate).getTime() - Date.now()
@@ -31,436 +37,353 @@ function timeUntil(utcDate: string): string {
   const h = Math.floor(diff / 3600000)
   const m = Math.floor((diff % 3600000) / 60000)
   const s = Math.floor((diff % 60000) / 1000)
-  if (h > 0) return `Starts in ${h}h ${m}m ${s}s`
-  if (m > 0) return `Starts in ${m}m ${s}s`
-  return `Starts in ${s}s`
+  if (h > 0) return `${h}h ${m}m ${s}s`
+  if (m > 0) return `${m}m ${s}s`
+  return `${s}s`
 }
 
 export default function HomePage() {
   const navigate = useNavigate()
   const [heroIdx, setHeroIdx] = useState(0)
-  const [fixtures, setFixtures] = useState<Fixture[]>([])
+  const [fixtures, setFixtures] = useState<Fixture[]>(staticFixtures as Fixture[])
   const [tick, setTick] = useState(0)
 
-  // Auto-advance hero every 4s
   useEffect(() => {
     if (heroSlides.length < 2) return
-    const t = setInterval(() => setHeroIdx(i => (i + 1) % heroSlides.length), 4000)
+    const t = setInterval(() => setHeroIdx(i => (i + 1) % heroSlides.length), 5000)
     return () => clearInterval(t)
   }, [])
 
-  // Tick every second for countdown
   useEffect(() => {
     const t = setInterval(() => setTick(n => n + 1), 1000)
     return () => clearInterval(t)
   }, [])
 
-  // Load fixtures
   const loadFixtures = useCallback(async () => {
     try {
       const data = await fetchLiveFixtures()
-      setFixtures(data)
+      if (data.length > 0) setFixtures(data)
     } catch { /* silent */ }
   }, [])
-
   useEffect(() => { loadFixtures() }, [loadFixtures])
 
   const hero = heroSlides[heroIdx] ?? heroSlides[0]
+  const liveFixtures = fixtures.filter(f => f.status === 'IN_PLAY' || f.status === 'PAUSED').slice(0, 4)
+  const upcomingFixtures = fixtures.filter(f => f.status === 'SCHEDULED' || f.status === 'TIMED')
+    .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime()).slice(0, 4)
+  const matchesToShow = liveFixtures.length > 0 ? liveFixtures : upcomingFixtures
 
-  const liveMatches = fixtures
-    .filter(f => f.status === 'IN_PLAY' || f.status === 'PAUSED')
-    .slice(0, 8)
-
-  const upcomingMatches = fixtures
-    .filter(f => f.status === 'SCHEDULED' || f.status === 'TIMED')
-    .sort((a, b) => new Date(a.utc_date).getTime() - new Date(b.utc_date).getTime())
-    .slice(0, 8)
-
-  const matchesToShow = liveMatches.length > 0 ? liveMatches : upcomingMatches
+  void tick
 
   return (
-    <div className="pb-24 md:pb-10 bg-[#0a0e1a] min-h-screen">
+    <div className="bg-mesh min-h-screen pb-6">
 
-      {/* ══════════════════════════════════════
-          HERO SLIDESHOW
-      ══════════════════════════════════════ */}
+      {/* ══ HERO ══ */}
       {hero && (
-        <section className="relative w-full overflow-hidden" style={{ aspectRatio: '16/7', maxHeight: 480, minHeight: 260 }}>
-          {/* Background image */}
+        <div className="relative overflow-hidden" style={{ minHeight: 340, maxHeight: 460 }}>
           {heroSlides.map((slide, i) => (
-            <div
-              key={slide.id}
-              className="absolute inset-0 transition-opacity duration-700"
-              style={{ opacity: i === heroIdx ? 1 : 0 }}
-            >
-              <img
-                src={slide.poster_url!}
-                alt={slide.title}
+            <div key={slide.id} className="absolute inset-0 transition-opacity duration-1000"
+              style={{ opacity: i === heroIdx ? 1 : 0 }}>
+              <img src={slide.poster_url!} alt={slide.title}
                 className="w-full h-full object-cover"
-                onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
-              />
-              {/* Dark gradient overlay */}
-              <div className="absolute inset-0" style={{
-                background: 'linear-gradient(to right, rgba(10,14,26,0.92) 0%, rgba(10,14,26,0.6) 50%, rgba(10,14,26,0.2) 100%)'
-              }} />
-              <div className="absolute inset-0" style={{
-                background: 'linear-gradient(to top, rgba(10,14,26,1) 0%, transparent 50%)'
-              }} />
+                onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
             </div>
           ))}
+          {/* Multi-layer overlay */}
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right, rgba(10,10,15,0.96) 0%, rgba(10,10,15,0.7) 55%, rgba(10,10,15,0.3) 100%)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #0A0A0F 0%, transparent 55%)' }} />
+          <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse 60% 80% at 30% 50%, rgba(124,58,237,0.12), transparent 70%)' }} />
 
-          {/* Content */}
-          <div className="absolute inset-0 flex flex-col justify-end px-5 pb-8 md:px-10 md:pb-10">
-            <div className="max-w-lg">
-              {/* Badges */}
-              <div className="flex items-center gap-2 mb-3">
-                <span className="flex items-center gap-1.5 bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-md tracking-wider uppercase">
-                  <span className="w-1.5 h-1.5 bg-white rounded-full live-dot" /> LIVE NOW
-                </span>
-                <span className="text-[10px] font-semibold text-gray-400 bg-white/8 border border-white/10 px-2.5 py-1 rounded-md">
-                  200+ free channels
-                </span>
-              </div>
-
-              {/* Source label */}
-              <p className="text-[10px] font-black tracking-[0.15em] text-primary-light uppercase flex items-center gap-1.5 mb-2">
-                <Television weight="duotone" size={11} /> CHILLZ TV
-              </p>
-
-              {/* Title */}
-              <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-1">
-                {hero.title}
-              </h2>
-              {hero.description && hero.description !== hero.title && (
-                <p className="text-sm text-gray-400 mt-1 mb-4 line-clamp-1">{hero.description}</p>
-              )}
-
-              {/* CTAs */}
-              <div className="flex items-center gap-3 mt-4">
-                <button
-                  onClick={() => navigate(`/tv/watch/${hero.id}`)}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white transition-all hover:scale-105"
-                  style={{ background: 'linear-gradient(135deg,#6c63ff,#4f46e5)', boxShadow: '0 8px 24px rgba(108,99,255,0.4)' }}
-                >
-                  <Play weight="fill" size={14} /> Watch live
-                </button>
-                <button
-                  onClick={() => navigate('/tv')}
-                  className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/15 transition-all backdrop-blur-sm"
-                >
-                  All channels
-                </button>
-              </div>
+          <div className="relative h-full flex flex-col justify-end px-5 pb-8 md:px-8" style={{ minHeight: 340 }}>
+            <p className="text-[10px] font-black tracking-[0.2em] text-primary-light uppercase mb-2 flex items-center gap-1.5">
+              <Television weight="fill" size={10} /> CHILLZ TV · LIVE
+            </p>
+            <h1 className="text-4xl md:text-6xl font-black text-white leading-none tracking-tight mb-1 max-w-lg">
+              DREAM<br />
+              <span className="gradient-text">BIGGER</span>
+            </h1>
+            <p className="text-sm text-muted mb-5 font-medium">Watch · Chill · Repeat</p>
+            <div className="flex items-center gap-3">
+              <button onClick={() => navigate(`/tv/watch/${hero.id}`)} className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white">
+                <Play weight="fill" size={14} /> Watch Now
+              </button>
+              <button onClick={() => navigate('/tv')}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white border border-white/20 bg-white/8 hover:bg-white/12 transition-all backdrop-blur-sm">
+                All Channels
+              </button>
             </div>
 
             {/* Dot indicators */}
             <div className="flex items-center gap-1.5 mt-5">
               {heroSlides.map((_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setHeroIdx(i)}
-                  className="transition-all rounded-full"
-                  style={{
-                    width: i === heroIdx ? 20 : 6,
-                    height: 6,
-                    background: i === heroIdx ? '#6c63ff' : 'rgba(255,255,255,0.25)',
-                  }}
-                />
+                <button key={i} onClick={() => setHeroIdx(i)}
+                  className="rounded-full transition-all"
+                  style={{ width: i === heroIdx ? 22 : 6, height: 6,
+                    background: i === heroIdx ? '#7C3AED' : 'rgba(255,255,255,0.2)' }} />
               ))}
             </div>
           </div>
-        </section>
+        </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-10 pt-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 pt-8">
 
-        {/* ══════════════════════════════════════
-            POPULAR CHANNELS
-        ══════════════════════════════════════ */}
+        {/* ══ LIVE TV ROW ══ */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-[10px] font-black tracking-[0.15em] text-gray-500 uppercase mb-0.5">TAP TO WATCH</p>
-              <h2 className="text-xl font-black text-white tracking-tight">Popular channels</h2>
-            </div>
-            <button
-              onClick={() => navigate('/tv')}
-              className="flex items-center gap-1.5 text-sm font-semibold text-primary-light hover:text-white transition-colors"
-            >
-              See all <ArrowRight size={14} />
-            </button>
-          </div>
-
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          <SectionHeader title="Live TV" sub="TAP TO WATCH" icon={<Television weight="duotone" size={14} className="text-primary-light" />}
+            onSeeAll={() => navigate('/tv')} />
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar mt-4">
             {popularChannels.map(ch => (
-              <div key={ch.id} className="shrink-0 w-36 sm:w-40">
-                <ChannelCard channel={ch} onClick={() => navigate(`/tv/watch/${ch.id}`)} />
-              </div>
+              <button key={ch.id} onClick={() => navigate(`/tv/watch/${ch.id}`)}
+                className="shrink-0 flex flex-col items-center gap-2 group">
+                <div className="w-16 h-16 rounded-2xl overflow-hidden border-2 border-border group-hover:border-primary/50 transition-all relative channel-glow"
+                  style={{ background: '#13111C' }}>
+                  {ch.poster_url ? (
+                    <img src={ch.poster_url} alt={ch.title} loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                      onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Television weight="duotone" size={24} className="text-primary-light opacity-60" />
+                    </div>
+                  )}
+                  <div className="absolute bottom-0.5 left-0.5 bg-red-600 text-white text-[7px] font-black px-1 py-0.5 rounded-sm tracking-wider">
+                    LIVE
+                  </div>
+                </div>
+                <span className="text-[10px] font-semibold text-muted group-hover:text-white transition-colors w-16 text-center truncate">
+                  {ch.title.replace(/ Uganda$/, '').replace(/ TV$/, '')}
+                </span>
+              </button>
             ))}
           </div>
         </section>
 
-        {/* ══════════════════════════════════════
-            LIVE & UPCOMING MATCHES
-        ══════════════════════════════════════ */}
+        {/* ══ TRENDING MOVIES ══ */}
+        <section>
+          <SectionHeader title="Trending Movies" icon={<FilmSlate weight="duotone" size={14} className="text-accent" />}
+            onSeeAll={() => navigate('/movies')} />
+          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar mt-4">
+            {TRENDING.map(m => (
+              <button key={m.title} onClick={() => navigate('/movies')}
+                className="shrink-0 w-28 group text-left">
+                <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-2"
+                  style={{ boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+                  <img src={m.poster} alt={m.title} loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                  <div className="absolute top-2 right-2 flex items-center gap-0.5 bg-black/60 backdrop-blur-sm px-1.5 py-0.5 rounded-lg">
+                    <Star weight="fill" size={9} className="text-amber-400" />
+                    <span className="text-[9px] font-bold text-white">{m.rating}</span>
+                  </div>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-10 h-10 rounded-full bg-primary/90 flex items-center justify-center shadow-glow-sm">
+                      <Play weight="fill" size={14} className="text-white translate-x-0.5" />
+                    </div>
+                  </div>
+                </div>
+                <p className="text-[11px] font-bold text-white truncate">{m.title}</p>
+                <p className="text-[10px] text-muted">{m.genre}</p>
+              </button>
+            ))}
+          </div>
+        </section>
+
+        {/* ══ LIVE & UPCOMING MATCHES ══ */}
         {matchesToShow.length > 0 && (
           <section>
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="text-[10px] font-black tracking-[0.15em] text-gray-500 uppercase mb-0.5 flex items-center gap-1.5">
-                  <SoccerBall weight="duotone" size={11} className="text-emerald-400" /> FOOTBALL
-                </p>
-                <h2 className="text-xl font-black text-white tracking-tight">
-                  {liveMatches.length > 0 ? 'Live matches' : 'Live & upcoming matches'}
-                </h2>
-                <p className="text-xs text-gray-600 mt-0.5">
-                  Champions League, Premier League, LaLiga, Serie A & more — free to watch on Chillz
-                </p>
-              </div>
-              <button
-                onClick={() => navigate('/sports')}
-                className="flex items-center gap-1.5 text-sm font-semibold text-primary-light hover:text-white transition-colors whitespace-nowrap"
-              >
-                All matches <ArrowRight size={14} />
-              </button>
+            <SectionHeader
+              title={liveFixtures.length > 0 ? 'Live & upcoming matches' : 'Upcoming Matches'}
+              sub="FOOTBALL"
+              icon={<SoccerBall weight="duotone" size={14} className="text-emerald-400" />}
+              desc="Champions League, Premier League, LaLiga, Serie A & more"
+              onSeeAll={() => navigate('/sports')}
+            />
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+              {matchesToShow.map(f => (
+                <MatchCard key={f.id} fixture={f} onClick={() => navigate(`/sports/fixture/${f.id}`)} />
+              ))}
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {matchesToShow.map(f => (
-                <MatchCard key={f.id} fixture={f} onClick={() => navigate(`/sports/fixture/${f.id}`)} tick={tick} />
-              ))}
+            {/* Top Leagues pills */}
+            <div className="mt-5">
+              <p className="text-[10px] font-black tracking-[0.15em] text-muted uppercase mb-3">Top Leagues</p>
+              <div className="flex gap-3 overflow-x-auto no-scrollbar pb-1">
+                {TOP_LEAGUES.map(l => (
+                  <button key={l.name} onClick={() => navigate('/sports')}
+                    className="shrink-0 flex items-center gap-2 px-3 py-2 rounded-xl bg-surface-2 border border-border hover:border-primary/40 transition-all group">
+                    <img src={l.logo} alt={l.name} className="w-5 h-5 object-contain"
+                      onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                    <span className="text-[11px] font-semibold text-muted group-hover:text-white transition-colors whitespace-nowrap">
+                      {l.name}
+                    </span>
+                  </button>
+                ))}
+              </div>
             </div>
           </section>
         )}
 
-        {/* ══════════════════════════════════════
-            STATS BAR
-        ══════════════════════════════════════ */}
-        <div className="grid grid-cols-3 divide-x divide-border/60 border border-border/60 rounded-2xl overflow-hidden">
+        {/* ══ QUICK ACCESS TILES ══ */}
+        <div className="grid grid-cols-3 gap-3">
           {[
-            { Icon: RadioButton, value: `${allChannels.filter(c=>c.active).length}+`, label: 'Live Channels' },
-            { Icon: SoccerBall,  value: `${fixtures.length || '—'}`,                label: 'Fixtures'      },
-            { Icon: Television,  value: `${ugandaChannels.length}+`,                label: 'Uganda Channels' },
-          ].map(({ Icon, value, label }) => (
-            <div key={label} className="flex flex-col items-center py-5 gap-1 bg-surface/40">
-              <Icon weight="duotone" size={15} className="text-primary-light mb-1 opacity-60" />
-              <span className="text-2xl font-black text-white tracking-tight">{value}</span>
-              <span className="text-[10px] text-gray-600 uppercase tracking-widest font-medium text-center">{label}</span>
-            </div>
+            { label: 'Live TV', sub: `${allChannels.filter(c=>c.active).length}+ channels`, color: '#7C3AED', icon: <Television weight="fill" size={22} />, path: '/tv' },
+            { label: 'Sports', sub: 'Live fixtures', color: '#10B981', icon: <SoccerBall weight="fill" size={22} />, path: '/sports' },
+            { label: 'Movies', sub: '28k+ films', color: '#F59E0B', icon: <FilmSlate weight="fill" size={22} />, path: '/movies' },
+          ].map(t => (
+            <button key={t.label} onClick={() => navigate(t.path)}
+              className="relative overflow-hidden rounded-2xl p-4 flex flex-col items-start gap-3 transition-all hover:-translate-y-0.5 group"
+              style={{ background: `linear-gradient(135deg, ${t.color}22, ${t.color}08)`, border: `1px solid ${t.color}30` }}>
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: `radial-gradient(ellipse at top left, ${t.color}20, transparent 70%)` }} />
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                style={{ background: `${t.color}25`, border: `1px solid ${t.color}35` }}>
+                <span style={{ color: t.color }}>{t.icon}</span>
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-bold text-white">{t.label}</p>
+                <p className="text-[10px] text-muted">{t.sub}</p>
+              </div>
+            </button>
           ))}
         </div>
 
-        {/* ══════════════════════════════════════
-            FEATURE TILES
-        ══════════════════════════════════════ */}
-        <section className="grid md:grid-cols-3 gap-3">
-          {[
-            {
-              icon: <Television weight="duotone" size={22} />,
-              title: 'Live TV',
-              desc: `${allChannels.filter(c=>c.active).length}+ channels. Uganda, sports, news, entertainment.`,
-              color: '#6c63ff',
-              path: '/tv',
-            },
-            {
-              icon: <SoccerBall weight="duotone" size={22} />,
-              title: 'Live Sports',
-              desc: 'Premier League, La Liga, Serie A, Champions League & more.',
-              color: '#10b981',
-              path: '/sports',
-            },
-            {
-              icon: <FilmSlate weight="duotone" size={22} />,
-              title: 'Free Movies',
-              desc: '28,000+ public domain films. Stream or download free.',
-              color: '#38bdf8',
-              path: '/movies',
-            },
-          ].map(({ icon, title, desc, color, path }) => (
-            <div
-              key={title}
-              onClick={() => navigate(path)}
-              className="group relative overflow-hidden rounded-2xl border border-white/6 bg-surface p-6 cursor-pointer transition-all hover:-translate-y-1 hover:border-white/12"
-              style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04)' }}
-            >
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                style={{ background: `radial-gradient(ellipse at top left, ${color}18, transparent 60%)` }} />
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4 text-white"
-                style={{ background: `${color}20`, border: `1px solid ${color}30` }}>
-                {icon}
-              </div>
-              <h3 className="font-bold text-white text-[15px] mb-1.5 tracking-tight">{title}</h3>
-              <p className="text-[13px] text-gray-600 leading-relaxed mb-5">{desc}</p>
-              <span className="flex items-center gap-1 text-[12px] font-semibold group-hover:gap-2 transition-all" style={{ color }}>
-                Open <ArrowRight size={12} />
-              </span>
-            </div>
-          ))}
-        </section>
-
-        {/* ══════════════════════════════════════
-            UGANDA CHANNELS SECTION
-        ══════════════════════════════════════ */}
+        {/* ══ UGANDA CHANNELS GRID ══ */}
         <section>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-[10px] font-black tracking-[0.15em] text-gray-500 uppercase mb-0.5">🇺🇬 LOCAL</p>
-              <h2 className="text-xl font-black text-white tracking-tight">Uganda Channels</h2>
-            </div>
-            <button onClick={() => navigate('/tv')} className="flex items-center gap-1.5 text-sm font-semibold text-primary-light hover:text-white transition-colors">
-              See all <ArrowRight size={14} />
-            </button>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+          <SectionHeader title="🇺🇬 Uganda Channels" sub="LOCAL" onSeeAll={() => navigate('/tv')} />
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3 mt-4">
             {ugandaChannels.slice(0, 12).map(ch => (
-              <div
-                key={ch.id}
-                onClick={() => navigate(`/tv/watch/${ch.id}`)}
-                className="group relative overflow-hidden rounded-xl border border-white/6 bg-surface cursor-pointer transition-all hover:-translate-y-0.5 hover:border-white/14"
-                style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
-              >
-                <div className="aspect-video bg-surface-2 relative overflow-hidden">
-                  <img
-                    src={ch.poster_url!}
-                    alt={ch.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                    onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
-                  />
+              <button key={ch.id} onClick={() => navigate(`/tv/watch/${ch.id}`)}
+                className="group relative overflow-hidden rounded-2xl border border-border bg-surface hover:border-primary/40 transition-all hover:-translate-y-0.5 channel-glow">
+                <div className="aspect-video relative overflow-hidden">
+                  <img src={ch.poster_url!} alt={ch.title} loading="lazy"
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
+                    onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Play weight="fill" size={20} className="text-white" />
+                    <div className="w-8 h-8 rounded-full bg-primary shadow-glow-sm flex items-center justify-center">
+                      <Play weight="fill" size={12} className="text-white translate-x-0.5" />
+                    </div>
                   </div>
-                  <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-red-600/90 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md tracking-widest">
-                    <span className="w-1 h-1 rounded-full bg-white live-dot" /> LIVE
+                  <div className="absolute top-1 left-1 bg-red-600 text-white text-[7px] font-black px-1 py-0.5 rounded-sm flex items-center gap-0.5">
+                    <span className="w-1 h-1 bg-white rounded-full live-dot" /> LIVE
                   </div>
                 </div>
-                <div className="px-2.5 py-2">
-                  <p className="text-[11px] font-semibold text-white truncate tracking-tight">{ch.title}</p>
+                <div className="p-2">
+                  <p className="text-[10px] font-bold text-white truncate">{ch.title}</p>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         </section>
-
-        {/* ══════════════════════════════════════
-            FOOTER
-        ══════════════════════════════════════ */}
-        <footer className="pt-8 border-t border-border/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-primary flex items-center justify-center">
-              <Lightning weight="fill" size={10} className="text-white" />
-            </div>
-            <span className="text-[13px] font-bold text-white tracking-tight">chillz</span>
-            <span className="text-gray-700 text-[13px]">— Watch. Chill. Repeat.</span>
-          </div>
-          <p className="text-[12px] text-gray-700">Free streaming · No account needed</p>
-        </footer>
 
       </div>
     </div>
   )
 }
 
-/* ── Channel Card (horizontal scroll) ── */
-function ChannelCard({ channel, onClick }: { channel: TvChannel; onClick: () => void }) {
+/* ── Section Header ── */
+function SectionHeader({ title, sub, icon, desc, onSeeAll }: {
+  title: string; sub?: string; icon?: React.ReactNode
+  desc?: string; onSeeAll?: () => void
+}) {
   return (
-    <div onClick={onClick} className="group cursor-pointer">
-      <div className="relative aspect-video rounded-xl overflow-hidden bg-surface-2 mb-2">
-        <img
-          src={channel.poster_url!}
-          alt={channel.title}
-          loading="lazy"
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
-        />
-        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-          <div className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold px-3 py-1.5 rounded-full">
-            <Play weight="fill" size={10} /> Watch
-          </div>
-        </div>
-        <div className="absolute top-1.5 left-1.5 flex items-center gap-1 bg-red-600/90 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md tracking-widest">
-          <span className="w-1 h-1 rounded-full bg-white live-dot" /> LIVE
-        </div>
-        {channel.country === 'Uganda' && (
-          <div className="absolute top-1.5 right-1.5 text-[9px] bg-yellow-500/20 border border-yellow-500/30 text-yellow-400 font-bold px-1.5 py-0.5 rounded-md">
-            🇺🇬
-          </div>
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        {sub && (
+          <p className="text-[9px] font-black tracking-[0.2em] text-muted uppercase mb-1 flex items-center gap-1.5">
+            {icon}{sub}
+          </p>
         )}
+        <h2 className="text-[17px] font-black text-white tracking-tight">{title}</h2>
+        {desc && <p className="text-[11px] text-muted mt-0.5">{desc}</p>}
       </div>
-      <p className="text-[11px] font-semibold text-white truncate tracking-tight">{channel.title}</p>
-      <p className="text-[10px] text-gray-700 mt-0.5">{channel.country || 'International'}</p>
+      {onSeeAll && (
+        <button onClick={onSeeAll} className="flex items-center gap-1 text-[12px] font-semibold text-primary-light hover:text-white transition-colors whitespace-nowrap mt-1">
+          See all <ArrowRight size={12} />
+        </button>
+      )}
     </div>
   )
 }
 
 /* ── Match Card ── */
-function MatchCard({ fixture: f, onClick, tick }: { fixture: Fixture; onClick: () => void; tick: number }) {
+function MatchCard({ fixture: f, onClick }: { fixture: Fixture; onClick: () => void }) {
   const isLive = f.status === 'IN_PLAY' || f.status === 'PAUSED'
-  const date   = new Date(f.utc_date)
-  const today  = new Date()
-  const isToday = date.toDateString() === today.toDateString()
-
-  // suppress lint warning for tick — it forces re-render for countdown
-  void tick
+  const isFinished = f.status === 'FINISHED'
+  const date = new Date(f.utc_date)
+  const today = date.toDateString() === new Date().toDateString()
 
   return (
-    <div
-      onClick={onClick}
-      className={`group relative overflow-hidden rounded-2xl border cursor-pointer transition-all hover:-translate-y-0.5 ${
-        isLive
-          ? 'border-red-500/20 bg-red-500/5 hover:border-red-500/40'
-          : 'border-white/6 bg-surface hover:border-white/14'
-      }`}
-      style={{ boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.03)' }}
-    >
-      {/* Match background art */}
-      <div className="relative h-28 overflow-hidden"
-        style={{ background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(108,99,255,0.08))' }}>
+    <button onClick={onClick}
+      className="relative overflow-hidden rounded-2xl border text-left transition-all hover:-translate-y-0.5 group w-full"
+      style={{
+        background: isLive
+          ? 'linear-gradient(135deg, rgba(239,68,68,0.12), rgba(19,17,28,0.95))'
+          : 'linear-gradient(135deg, rgba(124,58,237,0.08), rgba(19,17,28,0.95))',
+        border: `1px solid ${isLive ? 'rgba(239,68,68,0.25)' : 'rgba(45,38,69,0.8)'}`,
+        boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+      }}>
+      {/* Background glow */}
+      <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+        style={{ background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.1), transparent 70%)' }} />
 
-        {/* Team crests */}
-        <div className="absolute inset-0 flex items-center justify-between px-4 pt-2">
-          <img src={f.home_team_crest} alt="" className="w-12 h-12 object-contain drop-shadow-lg"
-            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-          <div className="text-center">
-            {isLive ? (
-              <span className="text-xl font-black text-red-400 tabular-nums">{f.home_score ?? 0}–{f.away_score ?? 0}</span>
-            ) : (
-              <span className="text-[11px] font-bold text-gray-400">VS</span>
-            )}
-          </div>
-          <img src={f.away_team_crest} alt="" className="w-12 h-12 object-contain drop-shadow-lg"
-            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-        </div>
-
-        {/* Date chip */}
-        <div className="absolute top-2 left-2">
-          <span className="text-[9px] font-black text-gray-500 bg-black/40 backdrop-blur-sm px-1.5 py-0.5 rounded-md">
-            {isToday ? 'TODAY' : date.toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            {' · '}
-            {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+      <div className="relative p-3">
+        {/* Top: date + status */}
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-[9px] font-bold text-muted">
+            {today ? 'TODAY' : date.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+            {' · '}{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </span>
+          {isLive && (
+            <span className="flex items-center gap-1 bg-red-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
+              <span className="w-1 h-1 bg-white rounded-full live-dot" /> LIVE
+            </span>
+          )}
+          {!isLive && !isFinished && (
+            <span className="text-[9px] text-emerald-400 font-semibold bg-emerald-400/10 px-1.5 py-0.5 rounded-md">
+              UPCOMING
+            </span>
+          )}
         </div>
 
-        {/* Live badge */}
-        {isLive && (
-          <div className="absolute top-2 right-2 flex items-center gap-1 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded-md tracking-wider">
-            <span className="w-1 h-1 bg-white rounded-full live-dot" /> LIVE
+        {/* Teams */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex flex-col items-center gap-1.5 flex-1">
+            <img src={f.home_team_crest} alt="" className="w-10 h-10 object-contain drop-shadow-lg"
+              onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+            <span className="text-[10px] font-bold text-white text-center line-clamp-1 w-full">
+              {f.home_team_name.split(' ').slice(0,2).join(' ')}
+            </span>
           </div>
-        )}
-      </div>
 
-      {/* Info */}
-      <div className="p-3 space-y-1.5">
-        <p className="text-[10px] font-black text-gray-600 uppercase tracking-wider truncate">{f.competition_name}</p>
-        <p className="text-[12px] font-bold text-white leading-tight truncate">
-          {f.home_team_name} vs {f.away_team_name}
-        </p>
-        {!isLive && (
-          <p className="text-[10px] text-gray-600 flex items-center gap-1">
-            🕐 {timeUntil(f.utc_date)}
+          <div className="flex flex-col items-center gap-0.5 px-1">
+            {isLive || isFinished ? (
+              <span className={`text-lg font-black tabular-nums ${isLive ? 'text-red-400' : 'text-white'}`}>
+                {f.home_score ?? 0}–{f.away_score ?? 0}
+              </span>
+            ) : (
+              <span className="text-[11px] font-black text-muted">VS</span>
+            )}
+            {isFinished && <span className="text-[8px] text-muted font-bold">FT</span>}
+          </div>
+
+          <div className="flex flex-col items-center gap-1.5 flex-1">
+            <img src={f.away_team_crest} alt="" className="w-10 h-10 object-contain drop-shadow-lg"
+              onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+            <span className="text-[10px] font-bold text-white text-center line-clamp-1 w-full">
+              {f.away_team_name.split(' ').slice(0,2).join(' ')}
+            </span>
+          </div>
+        </div>
+
+        <p className="text-[9px] text-muted font-semibold text-center mt-2 truncate">{f.competition_name}</p>
+        {!isLive && !isFinished && (
+          <p className="text-[9px] text-emerald-400 text-center mt-0.5">
+            🕐 Starts in {timeUntil(f.utc_date)}
           </p>
         )}
       </div>
-    </div>
+    </button>
   )
 }

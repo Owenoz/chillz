@@ -1,62 +1,53 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { useState } from 'react'
 import {
-  HouseSimple,
-  Television,
-  SoccerBall,
-  FilmSlate,
-  List,
-  X,
-  Lightning,
+  HouseSimple, Television, SoccerBall,
+  FilmSlate, UserCircle, MagnifyingGlass,
+  BellSimple, Play,
 } from '@phosphor-icons/react'
+import { useAuth } from '../contexts/AuthContext'
 
 const navItems = [
   { to: '/',       label: 'Home',    Icon: HouseSimple },
   { to: '/tv',     label: 'Live TV', Icon: Television  },
   { to: '/sports', label: 'Sports',  Icon: SoccerBall  },
   { to: '/movies', label: 'Movies',  Icon: FilmSlate   },
+  { to: '/profile',label: 'More',    Icon: UserCircle  },
 ]
 
 export default function Layout() {
-  const [menuOpen, setMenuOpen] = useState(false)
   const navigate = useNavigate()
+  const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-bg text-gray-100">
+    <div className="min-h-screen bg-bg text-[#E8E6F0]">
 
-      {/* ── Top nav ─────────────────────────────────────── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-bg/75 backdrop-blur-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-[56px] flex items-center gap-6">
+      {/* ── Top header ── */}
+      <header className="sticky top-0 z-50 bg-bg/80 backdrop-blur-2xl border-b border-border/60">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 flex items-center gap-4">
 
-          {/* Wordmark */}
-          <button
-            onClick={() => navigate('/')}
-            className="flex items-center gap-2 shrink-0 group"
-          >
-            <div className="w-7 h-7 rounded-[10px] bg-primary flex items-center justify-center shadow-lg shadow-primary/30 group-hover:shadow-primary/50 transition-all group-hover:scale-105">
-              <Lightning weight="fill" className="w-3.5 h-3.5 text-white" />
+          {/* Logo */}
+          <button onClick={() => navigate('/')} className="flex items-center gap-2 shrink-0 group">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center shadow-glow-sm group-hover:shadow-glow-md transition-all">
+              <Play weight="fill" size={14} className="text-white translate-x-0.5" />
             </div>
-            <span className="font-black text-[17px] tracking-[-0.03em] text-white hidden sm:block">
-              chillz
+            <span className="font-black text-lg tracking-tight text-white hidden sm:block">
+              Chillz
             </span>
           </button>
 
           {/* Desktop nav */}
-          <nav className="hidden md:flex items-center gap-0.5 ml-1">
-            {navItems.map(({ to, label, Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
+          <nav className="hidden md:flex items-center gap-1 ml-4">
+            {navItems.slice(0, 4).map(({ to, label, Icon }) => (
+              <NavLink key={to} to={to} end={to === '/'}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-medium tracking-[-0.01em] transition-all ${
+                  `flex items-center gap-2 px-3.5 py-2 rounded-xl text-[13px] font-semibold transition-all ${
                     isActive
-                      ? 'bg-white/8 text-white'
-                      : 'text-gray-500 hover:text-gray-200 hover:bg-white/5'
+                      ? 'bg-primary text-white shadow-glow-sm'
+                      : 'text-muted hover:text-white hover:bg-surface-2'
                   }`
                 }
               >
-                <Icon weight="duotone" size={15} />
+                <Icon weight="duotone" size={16} />
                 {label}
               </NavLink>
             ))}
@@ -64,73 +55,62 @@ export default function Layout() {
 
           <div className="flex-1" />
 
-          {/* Mobile hamburger */}
-          <button
-            className="md:hidden p-2 rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen
-              ? <X weight="bold" size={18} />
-              : <List weight="bold" size={18} />
-            }
-          </button>
+          {/* Right actions */}
+          <div className="flex items-center gap-2">
+            <button className="w-9 h-9 rounded-xl bg-surface-2 border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/40 transition-all">
+              <MagnifyingGlass weight="bold" size={16} />
+            </button>
+            <button className="w-9 h-9 rounded-xl bg-surface-2 border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/40 transition-all relative">
+              <BellSimple weight="bold" size={16} />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
+            </button>
+            <button
+              onClick={() => navigate('/profile')}
+              className="w-9 h-9 rounded-xl overflow-hidden border-2 border-primary/40 hover:border-primary transition-all"
+            >
+              {user?.user_metadata?.avatar_url ? (
+                <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-surface-2 flex items-center justify-center">
+                  <UserCircle weight="fill" size={20} className="text-primary-light" />
+                </div>
+              )}
+            </button>
+          </div>
         </div>
-
-        {/* Mobile dropdown */}
-        {menuOpen && (
-          <nav className="md:hidden border-t border-border bg-bg/95 backdrop-blur-2xl">
-            {navItems.map(({ to, label, Icon }) => (
-              <NavLink
-                key={to}
-                to={to}
-                end={to === '/'}
-                onClick={() => setMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-5 py-3.5 text-[13px] font-medium border-b border-border/40 last:border-0 transition-colors ${
-                    isActive ? 'text-white bg-white/5' : 'text-gray-500 hover:text-white'
-                  }`
-                }
-              >
-                <Icon weight="duotone" size={16} className="shrink-0" />
-                {label}
-              </NavLink>
-            ))}
-          </nav>
-        )}
       </header>
 
-      {/* ── Page content ────────────────────────────────── */}
-      <main>
+      {/* ── Page ── */}
+      <main className="mb-20 md:mb-0">
         <Outlet />
       </main>
 
-      {/* ── Bottom tab bar (mobile) ──────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-bg/90 backdrop-blur-2xl border-t border-border flex pb-safe">
-        {navItems.map(({ to, label, Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={to === '/'}
-            className={({ isActive }) =>
-              `flex-1 flex flex-col items-center gap-1 py-2.5 text-[10px] font-semibold tracking-[0.02em] uppercase transition-colors ${
-                isActive ? 'text-white' : 'text-gray-600'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon
-                  weight={isActive ? 'fill' : 'regular'}
-                  size={22}
-                  className="transition-transform"
-                  style={{ transform: isActive ? 'scale(1.1)' : 'scale(1)' }}
-                />
-                <span>{label}</span>
-              </>
-            )}
-          </NavLink>
-        ))}
+      {/* ── Bottom tab bar (mobile) ── */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 pb-safe"
+        style={{ background: 'rgba(10,10,15,0.95)', backdropFilter: 'blur(20px)', borderTop: '1px solid rgba(45,38,69,0.8)' }}>
+        <div className="flex items-center">
+          {navItems.map(({ to, label, Icon }) => (
+            <NavLink key={to} to={to} end={to === '/'}
+              className={({ isActive }) =>
+                `flex-1 flex flex-col items-center gap-1 py-3 text-[9px] font-bold tracking-wider uppercase transition-all ${
+                  isActive ? 'text-primary-light' : 'text-muted'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                    isActive ? 'bg-primary shadow-glow-sm' : ''
+                  }`}>
+                    <Icon weight={isActive ? 'fill' : 'regular'} size={20}
+                      className={isActive ? 'text-white' : 'text-muted'} />
+                  </div>
+                  <span className={isActive ? 'text-primary-light' : ''}>{label}</span>
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
     </div>
   )
