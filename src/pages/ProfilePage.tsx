@@ -167,9 +167,9 @@ function LoggedInProfile({ user, signOut, navigate }: {
   signOut: () => Promise<void>
   navigate: (path: string) => void
 }) {
+  const { isPremium } = useAuth()
   const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'User'
   const avatar = user.user_metadata?.avatar_url
-  const isPremium = false // will be driven by Supabase once payment is integrated
 
   const menuItems = [
     { icon: HouseSimple,   label: 'Home',          action: () => navigate('/') },
@@ -228,7 +228,8 @@ function LoggedInProfile({ user, signOut, navigate }: {
 
         {/* Premium upgrade CTA (only for free users) */}
         {!isPremium && (
-          <div className="rounded-2xl p-4 flex items-center gap-4 cursor-pointer transition-all hover:-translate-y-0.5"
+          <button onClick={() => navigate('/checkout')}
+            className="w-full rounded-2xl p-4 flex items-center gap-4 transition-all hover:-translate-y-0.5 text-left"
             style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.25),rgba(236,72,153,0.15))', border: '1px solid rgba(124,58,237,0.35)', boxShadow: '0 8px 24px rgba(124,58,237,0.2)' }}>
             <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
               style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}>
@@ -236,11 +237,26 @@ function LoggedInProfile({ user, signOut, navigate }: {
             </div>
             <div className="flex-1">
               <p className="text-sm font-black text-white">Upgrade to Premium</p>
-              <p className="text-[11px] text-muted mt-0.5">HD streams · Downloads · Ad-free experience</p>
+              <p className="text-[11px] text-muted mt-0.5">HD streams · Downloads · Ad-free · UGX 5,000/mo</p>
             </div>
             <div className="shrink-0 px-3 py-1.5 rounded-xl text-xs font-black text-white"
-              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)', boxShadow: '0 4px 12px rgba(245,158,11,0.4)' }}>
-              Coming Soon
+              style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', boxShadow: '0 4px 12px rgba(124,58,237,0.4)' }}>
+              Pay Now
+            </div>
+          </button>
+        )}
+
+        {/* Premium active banner */}
+        {isPremium && (
+          <div className="rounded-2xl p-4 flex items-center gap-4"
+            style={{ background: 'linear-gradient(135deg,rgba(16,185,129,0.2),rgba(5,150,105,0.1))', border: '1px solid rgba(16,185,129,0.35)' }}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center shrink-0"
+              style={{ background: 'linear-gradient(135deg,#F59E0B,#F97316)' }}>
+              <Crown weight="fill" size={22} className="text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-white">Premium Active ✓</p>
+              <p className="text-[11px] text-emerald-400 mt-0.5">All features unlocked</p>
             </div>
           </div>
         )}
