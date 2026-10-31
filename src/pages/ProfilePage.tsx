@@ -173,8 +173,8 @@ function LoggedInProfile({ user, signOut, navigate }: {
 
   const menuItems = [
     { icon: HouseSimple,   label: 'Home',          action: () => navigate('/') },
-    { icon: BookmarkSimple,label: 'My Watchlist',   action: () => {} },
-    { icon: DownloadSimple,label: 'Downloads',      action: () => {} },
+    { icon: BookmarkSimple,label: 'My Watchlist',   action: () => navigate('/watchlist') },
+    { icon: DownloadSimple,label: 'Downloads',      action: () => navigate('/watchlist') },
     { icon: Gear,          label: 'Settings',       action: () => {} },
     { icon: Question,      label: 'Help & Support', action: () => {} },
     { icon: Info,          label: 'About Chillz',   action: () => {} },

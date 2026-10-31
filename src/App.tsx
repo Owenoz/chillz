@@ -9,6 +9,7 @@ import MoviesPage from './pages/MoviesPage'
 import MovieWatchPage from './pages/MovieWatchPage'
 import ProfilePage from './pages/ProfilePage'
 import CheckoutPage from './pages/CheckoutPage'
+import WatchlistPage from './pages/WatchlistPage'
 import InstallBanner from './components/InstallBanner'
 
 export default function App() {
@@ -25,6 +26,7 @@ export default function App() {
           <Route path="movies/watch/:identifier" element={<MovieWatchPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="checkout" element={<CheckoutPage />} />
+          <Route path="watchlist" element={<WatchlistPage />} />
         </Route>
       </Routes>
       <InstallBanner />

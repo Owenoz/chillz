@@ -1,10 +1,11 @@
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import { Play, ArrowRight, Television, SoccerBall, FilmSlate, Star } from '@phosphor-icons/react'
+import { Play, ArrowRight, Television, SoccerBall, FilmSlate, Star, Clock } from '@phosphor-icons/react'
 import channels from '../data/tv_channels.json'
 import type { TvChannel, Fixture } from '../data/types'
 import { fetchLiveFixtures } from '../lib/sportsApi'
 import staticFixtures from '../data/sports_fixtures.json'
+import { getContinueWatching, type ContinueItem } from '../lib/watchlist'
 
 const allChannels = channels as TvChannel[]
 const ugandaChannels = allChannels.filter(c => c.active && c.poster_url && c.country === 'Uganda')
@@ -47,6 +48,11 @@ export default function HomePage() {
   const [heroIdx, setHeroIdx] = useState(0)
   const [fixtures, setFixtures] = useState<Fixture[]>(staticFixtures as Fixture[])
   const [tick, setTick] = useState(0)
+  const [continueList, setContinueList] = useState<ContinueItem[]>([])
+
+  useEffect(() => {
+    setContinueList(getContinueWatching())
+  }, [])
 
   useEffect(() => {
     if (heroSlides.length < 2) return
@@ -127,6 +133,51 @@ export default function HomePage() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 space-y-8 pt-8">
+
+        {/* ══ CONTINUE WATCHING ══ */}
+        {continueList.length > 0 && (
+          <section>
+            <SectionHeader
+              title="Continue Watching"
+              icon={<Clock weight="duotone" size={14} className="text-primary-light" />}
+              onSeeAll={() => navigate('/watchlist')}
+            />
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar mt-4">
+              {continueList.map(item => (
+                <button key={`${item.item_id}-${item.item_type}`}
+                  onClick={() => navigate(item.item_url)}
+                  className="shrink-0 w-28 text-left group">
+                  <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-2"
+                    style={{ background: 'rgba(19,17,28,0.8)', boxShadow: '0 8px 20px rgba(0,0,0,0.5)' }}>
+                    {item.item_poster ? (
+                      <img src={item.item_poster} alt={item.item_title} loading="lazy"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-400"
+                        onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        {item.item_type === 'channel'
+                          ? <Television weight="duotone" size={24} className="text-primary-light opacity-40" />
+                          : <FilmSlate weight="duotone" size={24} className="text-muted opacity-40" />}
+                      </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-glow-sm"
+                        style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)' }}>
+                        <Play weight="fill" size={14} className="text-white translate-x-0.5" />
+                      </div>
+                    </div>
+                    <div className="absolute top-1.5 left-1.5 text-[8px] font-black px-1.5 py-0.5 rounded-md text-white"
+                      style={{ background: item.item_type === 'channel' ? 'rgba(239,68,68,0.85)' : 'rgba(124,58,237,0.85)' }}>
+                      {item.item_type === 'channel' ? 'LIVE' : 'MOVIE'}
+                    </div>
+                  </div>
+                  <p className="text-[10px] font-bold text-white truncate">{item.item_title}</p>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ══ LIVE TV ROW ══ */}
         <section>

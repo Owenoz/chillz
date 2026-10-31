@@ -4,6 +4,7 @@ import Hls from 'hls.js'
 import { Television, ArrowLeft, ArrowSquareOut, Globe, WarningCircle, SpinnerGap } from '@phosphor-icons/react'
 import channelsData from '../data/tv_channels.json'
 import type { TvChannel } from '../data/types'
+import { saveContinueWatching } from '../lib/watchlist'
 
 const channels = channelsData as TvChannel[]
 
@@ -38,6 +39,18 @@ export default function TvWatchPage() {
 
   const channel = channels.find((c) => c.id === id)
   const activeChannels = channels.filter((c) => c.active)
+
+  // Save to continue watching when channel opens
+  useEffect(() => {
+    if (!channel) return
+    saveContinueWatching({
+      item_id:    channel.id,
+      item_type:  'channel',
+      item_title: channel.title,
+      item_poster: channel.poster_url || '',
+      item_url:   `/tv/watch/${channel.id}`,
+    })
+  }, [id])
   const currentIndex = activeChannels.findIndex((c) => c.id === id)
 
   // Sidebar channels — show 40 nearest + filter by search
