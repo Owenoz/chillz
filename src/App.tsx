@@ -7,6 +7,7 @@ import SportsPage from './pages/SportsPage'
 import FixturePage from './pages/FixturePage'
 import MoviesPage from './pages/MoviesPage'
 import MovieWatchPage from './pages/MovieWatchPage'
+import VJWatchPage from './pages/VJWatchPage'
 import ProfilePage from './pages/ProfilePage'
 import CheckoutPage from './pages/CheckoutPage'
 import WatchlistPage from './pages/WatchlistPage'
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="sports/fixture/:id" element={<FixturePage />} />
           <Route path="movies" element={<MoviesPage />} />
           <Route path="movies/watch/:identifier" element={<MovieWatchPage />} />
+          <Route path="movies/vj/:id" element={<VJWatchPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="watchlist" element={<WatchlistPage />} />
