@@ -6,8 +6,8 @@ import TvWatchPage from './pages/TvWatchPage'
 import SportsPage from './pages/SportsPage'
 import FixturePage from './pages/FixturePage'
 import MoviesPage from './pages/MoviesPage'
-import MovieWatchPage from './pages/MovieWatchPage'
-import VJWatchPage from './pages/VJWatchPage'
+import TMDBWatchPage from './pages/TMDBWatchPage'
+import LugaWatchPage from './pages/LugaWatchPage'
 import ProfilePage from './pages/ProfilePage'
 import CheckoutPage from './pages/CheckoutPage'
 import WatchlistPage from './pages/WatchlistPage'
@@ -24,8 +24,10 @@ export default function App() {
           <Route path="sports" element={<SportsPage />} />
           <Route path="sports/fixture/:id" element={<FixturePage />} />
           <Route path="movies" element={<MoviesPage />} />
-          <Route path="movies/watch/:identifier" element={<MovieWatchPage />} />
-          <Route path="movies/vj/:id" element={<VJWatchPage />} />
+          {/* Non-translated: TMDB metadata + vidsrc.to embed */}
+          <Route path="movies/tmdb/:id" element={<TMDBWatchPage />} />
+          {/* Translated: LugaFlix direct MP4 native player */}
+          <Route path="movies/luga/:id" element={<LugaWatchPage />} />
           <Route path="profile" element={<ProfilePage />} />
           <Route path="checkout" element={<CheckoutPage />} />
           <Route path="watchlist" element={<WatchlistPage />} />

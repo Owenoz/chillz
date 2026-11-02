@@ -2,146 +2,176 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   FilmSlate, Play, MagnifyingGlass, X, ArrowRight,
-  Translate, SpinnerGap, Microphone,
+  Translate, SpinnerGap, Microphone, Star,
 } from '@phosphor-icons/react'
-import { fetchIARail, searchIA, genres as getGenres, IA_RAILS, type IAMovie } from '../lib/archiveApi'
+import {
+  TMDB_RAILS, searchTMDB, tmdbImage,
+  type TMDBMovie,
+} from '../lib/tmdbApi'
+import { getLugaMovies, searchLuga, normaliseVj, type LugaMovie } from '../lib/lugaflixApi'
 
-// ── Types ─────────────────────────────────────────────────────
-interface VJMovie {
-  id: string   // tmdb:XXXXX
-  n:  string   // name
-  p:  string   // poster
-  t:  string   // type: movie | series
-  u:  string   // embed url (s-u.in detail page)
-}
-
-type Tab = 'free' | 'translated'
+type Tab = 'movies' | 'translated'
 
 const RAIL_COLORS: Record<string, string> = {
-  popular: '#F59E0B', action: '#EF4444', drama: '#6366F1',
-  comedy: '#10B981', thriller: '#8B5CF6', scifi: '#38BDF8',
-  classic: '#F97316', western: '#A16207', romance: '#EC4899', documentary: '#64748B',
+  nowPlaying: '#ef4444', trending: '#f97316', popular: '#f59e0b',
+  topRated: '#fbbf24', upcoming: '#a78bfa', action: '#ef4444',
+  drama: '#6366f1', comedy: '#10b981', thriller: '#8b5cf6',
+  horror: '#dc2626', scifi: '#38bdf8', tvShows: '#06b6d4',
 }
 
-type RailsState = Record<string, IAMovie[]>
+type RailsState = Record<string, TMDBMovie[]>
 
-function moviePath(m: IAMovie) {
-  return `/movies/watch/${encodeURIComponent(m.identifier)}?title=${encodeURIComponent(m.title)}&year=${m.year}&poster=${encodeURIComponent(m.thumb || '')}`
+function tmdbWatchPath(m: TMDBMovie): string {
+  const type = m.media_type === 'tv' || m.name ? 'tv' : 'movie'
+  const title = encodeURIComponent(m.title || m.name || '')
+  const poster = encodeURIComponent(m.poster_path ? `https://image.tmdb.org/t/p/w500${m.poster_path}` : '')
+  const year = (m.release_date || m.first_air_date || '').slice(0, 4)
+  const rating = m.vote_average?.toFixed(1) || ''
+  const overview = encodeURIComponent((m.overview || '').slice(0, 200))
+  return `/movies/tmdb/${m.id}?type=${type}&title=${title}&poster=${poster}&year=${year}&rating=${rating}&plot=${overview}`
 }
 
-// ── VJ Movie watch path ────────────────────────────────────────
-function vjPath(m: VJMovie) {
-  // Extract numeric TMDB id from "tmdb:1402" → "1402"
-  const tmdbId = m.id.replace('tmdb:', '')
-  return `/movies/vj/${tmdbId}?title=${encodeURIComponent(m.n)}&poster=${encodeURIComponent(m.p)}&type=${m.t}`
+function lugaWatchPath(m: LugaMovie): string {
+  return `/movies/luga/${m.id}?title=${encodeURIComponent(m.title)}&poster=${encodeURIComponent(m.thumbnail_url)}&vj=${encodeURIComponent(normaliseVj(m.vj))}&url=${encodeURIComponent(m.url)}`
 }
 
 export default function MoviesPage() {
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('free')
+  const [tab, setTab] = useState<Tab>('movies')
 
-  // ── Free movies (Internet Archive) ──────────────────────────
-  const [rails, setRails]               = useState<RailsState>({})
-  const [loading, setLoading]           = useState(true)
-  const [apiError, setApiError]         = useState(false)
-  const [search, setSearch]             = useState('')
-  const [searchResults, setSearchResults] = useState<IAMovie[]>([])
-  const [searching, setSearching]       = useState(false)
+  // ── TMDB (non-translated) ──────────────────────────────────
+  const [rails, setRails]           = useState<RailsState>({})
+  const [tmdbLoading, setTmdbLoading] = useState(true)
+  const [tmdbError, setTmdbError]   = useState(false)
+  const [search, setSearch]         = useState('')
+  const [searchResults, setSearchResults] = useState<TMDBMovie[]>([])
+  const [searching, setSearching]   = useState(false)
   const searchTimer = useRef<ReturnType<typeof setTimeout>>()
 
-  // ── VJ Translated (MovieBay) ─────────────────────────────────
-  const [vjMovies, setVjMovies]         = useState<VJMovie[]>([])
-  const [vjLoading, setVjLoading]       = useState(false)
-  const [vjSearch, setVjSearch]         = useState('')
-  const [vjPage, setVjPage]             = useState(1)
-  const [vjFilter, setVjFilter]         = useState<'all' | 'movie' | 'series'>('all')
-  const vjLoaderRef = useRef<HTMLDivElement>(null)
-  const PAGE_SIZE = 40
+  // ── LugaFlix (translated) ──────────────────────────────────
+  const [lugaMovies, setLugaMovies] = useState<LugaMovie[]>([])
+  const [lugaLoading, setLugaLoading] = useState(false)
+  const [lugaTotal, setLugaTotal]   = useState(0)
+  const [lugaPage, setLugaPage]     = useState(1)
+  const [lugaSearch, setLugaSearch] = useState('')
+  const [lugaSearchResults, setLugaSearchResults] = useState<LugaMovie[]>([])
+  const [lugaSearching, setLugaSearching] = useState(false)
+  const [lugaFilter, setLugaFilter] = useState<'all' | 'Movie' | 'Series'>('all')
+  const lugaSearchTimer = useRef<ReturnType<typeof setTimeout>>()
+  const loaderRef = useRef<HTMLDivElement>(null)
 
-  // Load IA rails
-  const loadRails = useCallback(async () => {
-    setLoading(true); setApiError(false)
+  // Load TMDB rails
+  const loadTMDB = useCallback(async () => {
+    setTmdbLoading(true); setTmdbError(false)
     try {
-      const first = await fetchIARail(IA_RAILS[0].query)
-      if (!first.length) { setApiError(true); setLoading(false); return }
-      setRails({ [IA_RAILS[0].key]: first })
-      setLoading(false)
-      const rest = await Promise.all(IA_RAILS.slice(1).map(r => fetchIARail(r.query)))
+      const first = await TMDB_RAILS[0].fetch()
+      if (!first.length) { setTmdbError(true); setTmdbLoading(false); return }
+      setRails({ [TMDB_RAILS[0].key]: first })
+      setTmdbLoading(false)
+      const rest = await Promise.all(TMDB_RAILS.slice(1).map(r => r.fetch()))
       setRails(prev => {
         const u = { ...prev }
-        IA_RAILS.slice(1).forEach((r, i) => { u[r.key] = rest[i] })
+        TMDB_RAILS.slice(1).forEach((r, i) => { u[r.key] = rest[i] })
         return u
       })
-    } catch { setApiError(true); setLoading(false) }
+    } catch { setTmdbError(true); setTmdbLoading(false) }
   }, [])
-  useEffect(() => { loadRails() }, [loadRails])
+  useEffect(() => { loadTMDB() }, [loadTMDB])
 
-  // Load VJ movies from public JSON
+  // Load LugaFlix page
+  const loadLuga = useCallback(async (page: number) => {
+    setLugaLoading(true)
+    try {
+      const data = await getLugaMovies(page, 40)
+      setLugaTotal(data.data.pagination.total)
+      if (page === 1) setLugaMovies(data.data.items)
+      else setLugaMovies(prev => [...prev, ...data.data.items])
+    } catch { /* silent */ }
+    finally { setLugaLoading(false) }
+  }, [])
+
   useEffect(() => {
-    if (vjMovies.length > 0) return
-    setVjLoading(true)
-    fetch('/vj-translated.json')
-      .then(r => r.json())
-      .then((data: VJMovie[]) => { setVjMovies(data); setVjLoading(false) })
-      .catch(() => setVjLoading(false))
-  }, [])
+    if (tab === 'translated' && lugaMovies.length === 0) loadLuga(1)
+  }, [tab])
 
-  // IA debounced search
+  // Infinite scroll for LugaFlix
+  useEffect(() => {
+    const el = loaderRef.current
+    if (!el) return
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && !lugaLoading && !lugaSearch) {
+        const nextPage = lugaPage + 1
+        setLugaPage(nextPage)
+        loadLuga(nextPage)
+      }
+    }, { rootMargin: '400px' })
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [lugaLoading, lugaPage, lugaSearch])
+
+  // TMDB debounced search
   useEffect(() => {
     clearTimeout(searchTimer.current)
     if (!search.trim()) { setSearchResults([]); return }
     searchTimer.current = setTimeout(async () => {
       setSearching(true)
-      const r = await searchIA(search.trim())
+      const r = await searchTMDB(search.trim())
       setSearchResults(r); setSearching(false)
     }, 450)
     return () => clearTimeout(searchTimer.current)
   }, [search])
 
-  // Infinite scroll for VJ tab
+  // LugaFlix debounced search
   useEffect(() => {
-    const el = vjLoaderRef.current
-    if (!el) return
-    const obs = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && vjPage * PAGE_SIZE < filteredVj.length)
-        setVjPage(p => p + 1)
-    }, { rootMargin: '300px' })
-    obs.observe(el)
-    return () => obs.disconnect()
-  })
+    clearTimeout(lugaSearchTimer.current)
+    if (!lugaSearch.trim()) { setLugaSearchResults([]); return }
+    lugaSearchTimer.current = setTimeout(async () => {
+      setLugaSearching(true)
+      const r = await searchLuga(lugaSearch.trim())
+      setLugaSearchResults(r); setLugaSearching(false)
+    }, 500)
+    return () => clearTimeout(lugaSearchTimer.current)
+  }, [lugaSearch])
 
-  // Reset VJ page on filter/search change
-  useEffect(() => { setVjPage(1) }, [vjSearch, vjFilter])
+  const hero = rails['nowPlaying']?.[0] || rails['trending']?.[0]
+  const lugaHero = lugaMovies[0]
 
-  const filteredVj = vjMovies.filter(m => {
-    const q = vjSearch.toLowerCase().trim()
-    const matchSearch = !q || m.n.toLowerCase().includes(q)
-    const matchType = vjFilter === 'all' || m.t === vjFilter
-    return matchSearch && matchType
-  })
-  const visibleVj = filteredVj.slice(0, vjPage * PAGE_SIZE)
-
-  const hero = rails[IA_RAILS[0].key]?.[0]
+  const visibleLuga = lugaSearch
+    ? lugaSearchResults
+    : lugaFilter === 'all'
+    ? lugaMovies
+    : lugaMovies.filter(m => m.type === lugaFilter)
 
   return (
     <div className="bg-mesh min-h-screen pb-6">
 
-      {/* ── Cinematic Hero (only on free tab) ── */}
-      {tab === 'free' && !search && hero && (
+      {/* ── Hero ── */}
+      {tab === 'movies' && hero && !search && (
         <div className="relative overflow-hidden cursor-pointer group"
-          style={{ aspectRatio: '21/9', minHeight: 200, maxHeight: 420 }}
-          onClick={() => navigate(moviePath(hero))}>
-          <img src={hero.thumb} alt={hero.title}
+          style={{ aspectRatio: '21/9', minHeight: 220, maxHeight: 460 }}
+          onClick={() => navigate(tmdbWatchPath(hero))}>
+          <img
+            src={tmdbImage(hero.backdrop_path, 'w1280')}
+            alt={hero.title || hero.name}
             className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right,rgba(10,10,15,0.96) 0%,rgba(10,10,15,0.6) 55%,rgba(10,10,15,0.15) 100%)' }} />
+            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')}
+          />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right,rgba(10,10,15,0.96) 0%,rgba(10,10,15,0.55) 55%,rgba(10,10,15,0.1) 100%)' }} />
           <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,#0A0A0F 0%,transparent 55%)' }} />
           <div className="absolute inset-0 flex items-end px-6 pb-7 md:px-10 md:pb-10">
             <div className="max-w-lg">
-              <span className="text-[10px] font-black tracking-[0.2em] uppercase text-primary-light bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-full mb-3 inline-block">
-                Free · No Signup
-              </span>
-              <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-3">{hero.title}</h2>
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-[10px] font-black tracking-widest uppercase text-primary-light bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-full">Now Playing</span>
+                {hero.vote_average > 0 && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-amber-400">
+                    <Star weight="fill" size={10} /> {hero.vote_average.toFixed(1)}
+                  </span>
+                )}
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-3">{hero.title || hero.name}</h2>
+              {hero.overview && (
+                <p className="text-sm text-muted line-clamp-2 hidden sm:block mb-4 max-w-md">{hero.overview.slice(0, 140)}</p>
+              )}
               <button className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white">
                 <Play weight="fill" size={14} /> Play Now
               </button>
@@ -150,49 +180,44 @@ export default function MoviesPage() {
         </div>
       )}
 
-      {/* ── VJ Hero (translated tab) ── */}
-      {tab === 'translated' && !vjSearch && vjMovies.length > 0 && (() => {
-        const h = vjMovies[0]
-        return (
-          <div className="relative overflow-hidden cursor-pointer group"
-            style={{ aspectRatio: '21/9', minHeight: 200, maxHeight: 380 }}
-            onClick={() => navigate(vjPath(h))}>
-            <img src={h.p} alt={h.n}
-              className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-              onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to right,rgba(10,10,15,0.96) 0%,rgba(10,10,15,0.55) 55%,rgba(10,10,15,0.1) 100%)' }} />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,#0A0A0F 0%,transparent 55%)' }} />
-            <div className="absolute inset-0 flex items-end px-6 pb-7 md:px-10 md:pb-10">
-              <div className="max-w-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-[10px] font-black tracking-[0.2em] uppercase text-primary-light bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-full flex items-center gap-1.5">
-                    <Translate weight="duotone" size={10} /> Luganda VJ
-                  </span>
-                </div>
-                <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-3">{h.n}</h2>
-                <button className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white">
-                  <Play weight="fill" size={14} /> Watch Now
-                </button>
+      {tab === 'translated' && lugaHero && !lugaSearch && (
+        <div className="relative overflow-hidden cursor-pointer group"
+          style={{ aspectRatio: '21/9', minHeight: 200, maxHeight: 380 }}
+          onClick={() => navigate(lugaWatchPath(lugaHero))}>
+          <img src={lugaHero.thumbnail_url} alt={lugaHero.title}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+            onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to right,rgba(10,10,15,0.96) 0%,rgba(10,10,15,0.55) 55%,rgba(10,10,15,0.1) 100%)' }} />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top,#0A0A0F 0%,transparent 55%)' }} />
+          <div className="absolute inset-0 flex items-end px-6 pb-7 md:px-10 md:pb-10">
+            <div className="max-w-lg">
+              <div className="flex items-center gap-2 mb-3">
+                <span className="flex items-center gap-1.5 text-[10px] font-black tracking-widest uppercase text-primary-light bg-primary/15 border border-primary/25 px-2.5 py-1 rounded-full">
+                  <Translate size={10} /> Luganda · {normaliseVj(lugaHero.vj)}
+                </span>
               </div>
+              <h2 className="text-3xl md:text-5xl font-black text-white leading-none tracking-tight mb-3">{lugaHero.title}</h2>
+              <button className="btn-primary flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white">
+                <Play weight="fill" size={14} /> Watch Now
+              </button>
             </div>
           </div>
-        )
-      })()}
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-5 space-y-6 pt-6">
 
         {/* ── Tab switcher ── */}
         <div className="flex gap-1 p-1 rounded-2xl w-fit"
           style={{ background: 'rgba(19,17,28,0.9)', border: '1px solid rgba(45,38,69,0.7)' }}>
-          <button onClick={() => setTab('free')}
+          <button onClick={() => setTab('movies')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
             style={{
-              background: tab === 'free' ? 'linear-gradient(135deg,#7C3AED,#5B21B6)' : 'transparent',
-              color: tab === 'free' ? '#fff' : '#7C7A91',
-              boxShadow: tab === 'free' ? '0 4px 12px rgba(124,58,237,0.4)' : 'none',
+              background: tab === 'movies' ? 'linear-gradient(135deg,#7C3AED,#5B21B6)' : 'transparent',
+              color: tab === 'movies' ? '#fff' : '#7C7A91',
+              boxShadow: tab === 'movies' ? '0 4px 12px rgba(124,58,237,0.4)' : 'none',
             }}>
-            <FilmSlate weight="duotone" size={15} />
-            Free Movies
+            <FilmSlate weight="duotone" size={15} /> Movies & TV
           </button>
           <button onClick={() => setTab('translated')}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all"
@@ -201,62 +226,51 @@ export default function MoviesPage() {
               color: tab === 'translated' ? '#fff' : '#7C7A91',
               boxShadow: tab === 'translated' ? '0 4px 12px rgba(124,58,237,0.4)' : 'none',
             }}>
-            <Translate weight="duotone" size={15} />
-            VJ Translated
-            {vjMovies.length > 0 && (
+            <Translate weight="duotone" size={15} /> VJ Translated
+            {lugaTotal > 0 && (
               <span className="text-[9px] font-black px-1.5 py-0.5 rounded-full"
                 style={{ background: 'rgba(255,255,255,0.15)', color: tab === 'translated' ? '#fff' : '#7C7A91' }}>
-                {vjMovies.length.toLocaleString()}
+                {(lugaTotal / 1000).toFixed(0)}k+
               </span>
             )}
           </button>
         </div>
 
-        {/* ══════════════ FREE MOVIES TAB ══════════════ */}
-        {tab === 'free' && (
+        {/* ══════════ MOVIES TAB ══════════ */}
+        {tab === 'movies' && (
           <>
-            {/* Search */}
             <div className="relative">
               <MagnifyingGlass weight="bold" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-              <input type="text" placeholder="Search free movies…" value={search}
+              <input type="text" placeholder="Search movies, shows, actors…" value={search}
                 onChange={e => setSearch(e.target.value)}
                 className="w-full rounded-2xl pl-11 pr-10 py-3 text-sm text-white placeholder-muted focus:outline-none"
                 style={{ background: 'rgba(19,17,28,0.8)', border: '1px solid rgba(45,38,69,0.8)' }} />
-              {search && (
-                <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white">
-                  <X weight="bold" size={14} />
-                </button>
-              )}
+              {search && <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white"><X weight="bold" size={14} /></button>}
             </div>
 
-            {apiError && (
+            {tmdbError && !search && (
               <div className="rounded-2xl p-8 text-center border border-border bg-surface space-y-3">
                 <FilmSlate weight="duotone" size={36} className="text-muted opacity-40 mx-auto" />
-                <p className="font-bold text-white">Movie library unavailable</p>
-                <button onClick={loadRails} className="btn-primary px-5 py-2 rounded-xl text-sm font-bold text-white">↺ Retry</button>
+                <p className="font-bold text-white">Couldn't load movies</p>
+                <button onClick={loadTMDB} className="btn-primary px-5 py-2 rounded-xl text-sm font-bold text-white">↺ Retry</button>
               </div>
             )}
 
-            {/* Search results */}
             {search.trim() && (
               <div>
                 <p className="text-sm text-muted mb-4">
                   {searching ? 'Searching…' : `${searchResults.length} results for "${search}"`}
                 </p>
-                {searching ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {Array.from({length:12}).map((_,i) => <Skeleton key={i} />)}
-                  </div>
-                ) : searchResults.length > 0 ? (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                    {searchResults.map(m => <IACard key={m.identifier} movie={m} onClick={() => navigate(moviePath(m))} />)}
-                  </div>
-                ) : <p className="text-muted text-sm">No results.</p>}
+                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                  {searching
+                    ? Array.from({length:12}).map((_,i) => <Skeleton key={i} />)
+                    : searchResults.map(m => <TMDBCard key={m.id} movie={m} onClick={() => navigate(tmdbWatchPath(m))} />)
+                  }
+                </div>
               </div>
             )}
 
-            {/* Skeletons while loading */}
-            {loading && !search && (
+            {tmdbLoading && !search && (
               <div className="space-y-8">
                 {[1,2,3].map(i => (
                   <div key={i}>
@@ -269,8 +283,7 @@ export default function MoviesPage() {
               </div>
             )}
 
-            {/* Rails */}
-            {!search && !apiError && !loading && IA_RAILS.map(({ key, label }) => {
+            {!search && !tmdbError && !tmdbLoading && TMDB_RAILS.map(({ key, label }) => {
               const movies = rails[key]
               if (!movies?.length) return null
               const color = RAIL_COLORS[key] || '#7C3AED'
@@ -287,8 +300,8 @@ export default function MoviesPage() {
                   </div>
                   <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
                     {movies.map(m => (
-                      <div key={m.identifier} className="shrink-0 w-[120px] sm:w-[140px]">
-                        <IACard movie={m} onClick={() => navigate(moviePath(m))} />
+                      <div key={m.id} className="shrink-0 w-[120px] sm:w-[140px]">
+                        <TMDBCard movie={m} onClick={() => navigate(tmdbWatchPath(m))} />
                       </div>
                     ))}
                   </div>
@@ -298,7 +311,7 @@ export default function MoviesPage() {
           </>
         )}
 
-        {/* ══════════════ VJ TRANSLATED TAB ══════════════ */}
+        {/* ══════════ TRANSLATED TAB ══════════ */}
         {tab === 'translated' && (
           <>
             {/* Info banner */}
@@ -308,97 +321,79 @@ export default function MoviesPage() {
                 style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
                 <Microphone weight="fill" size={22} className="text-white" />
               </div>
-              <div>
-                <p className="text-sm font-black text-white">Luganda VJ Translated Movies</p>
+              <div className="flex-1">
+                <p className="text-sm font-black text-white">Luganda VJ Translated</p>
                 <p className="text-[11px] text-muted mt-0.5">
-                  {vjMovies.length.toLocaleString()} titles — VJ Junior, VJ Ice P, VJ Emmy, VJ Banks & more
+                  {lugaTotal > 0 ? `${lugaTotal.toLocaleString()} titles` : 'Loading…'} · Direct MP4 · No ads · No redirects
                 </p>
               </div>
             </div>
 
-            {/* Search + filter */}
+            {/* Search + type filter */}
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <MagnifyingGlass weight="bold" size={15} className="absolute left-4 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
-                <input type="text" placeholder="Search VJ movies…" value={vjSearch}
-                  onChange={e => setVjSearch(e.target.value)}
+                <input type="text" placeholder="Search VJ movies…" value={lugaSearch}
+                  onChange={e => setLugaSearch(e.target.value)}
                   className="w-full rounded-2xl pl-10 pr-9 py-2.5 text-sm text-white placeholder-muted focus:outline-none"
                   style={{ background: 'rgba(19,17,28,0.8)', border: '1px solid rgba(45,38,69,0.8)' }} />
-                {vjSearch && (
-                  <button onClick={() => setVjSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white">
-                    <X weight="bold" size={13} />
-                  </button>
-                )}
+                {lugaSearch && <button onClick={() => setLugaSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-white"><X weight="bold" size={13} /></button>}
               </div>
-
-              {/* Type filter */}
               <div className="flex gap-1 p-1 rounded-2xl" style={{ background: 'rgba(19,17,28,0.8)', border: '1px solid rgba(45,38,69,0.6)' }}>
-                {([['all','All'], ['movie','Movies'], ['series','Series']] as const).map(([val, label]) => (
-                  <button key={val} onClick={() => setVjFilter(val)}
+                {(['all','Movie','Series'] as const).map(v => (
+                  <button key={v} onClick={() => setLugaFilter(v)}
                     className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all"
                     style={{
-                      background: vjFilter === val ? 'linear-gradient(135deg,#7C3AED,#5B21B6)' : 'transparent',
-                      color: vjFilter === val ? '#fff' : '#7C7A91',
+                      background: lugaFilter === v ? 'linear-gradient(135deg,#7C3AED,#5B21B6)' : 'transparent',
+                      color: lugaFilter === v ? '#fff' : '#7C7A91',
                     }}>
-                    {label}
+                    {v === 'all' ? 'All' : v}
                   </button>
                 ))}
               </div>
             </div>
 
-            <p className="text-xs text-muted">
-              <span className="text-white font-bold">{filteredVj.length.toLocaleString()}</span> titles
-            </p>
-
-            {/* Loading */}
-            {vjLoading && (
-              <div className="flex items-center justify-center py-20 gap-3">
-                <SpinnerGap weight="bold" size={28} className="text-primary animate-spin" />
-                <p className="text-muted text-sm">Loading VJ movies…</p>
+            {lugaSearching && (
+              <div className="flex items-center gap-2 text-muted text-sm py-4">
+                <SpinnerGap weight="bold" size={16} className="animate-spin" /> Searching…
               </div>
             )}
 
-            {/* Grid with infinite scroll */}
-            {!vjLoading && (
-              <>
-                <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8 gap-3">
-                  {visibleVj.map(m => (
-                    <VJCard key={m.id} movie={m} onClick={() => navigate(vjPath(m))} />
-                  ))}
-                </div>
+            {/* Grid */}
+            {!lugaSearching && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+                {visibleLuga.map(m => (
+                  <LugaCard key={m.id} movie={m} onClick={() => navigate(lugaWatchPath(m))} />
+                ))}
+                {lugaLoading && Array.from({length:8}).map((_,i) => <Skeleton key={i} />)}
+              </div>
+            )}
 
-                {/* Infinite scroll trigger */}
-                <div ref={vjLoaderRef} className="flex justify-center py-4">
-                  {vjPage * PAGE_SIZE < filteredVj.length && (
-                    <SpinnerGap weight="bold" size={20} className="text-muted animate-spin" />
-                  )}
-                </div>
-
-                {filteredVj.length === 0 && (
-                  <div className="text-center py-16">
-                    <Translate weight="duotone" size={40} className="text-muted opacity-40 mx-auto mb-3" />
-                    <p className="text-muted">No results found</p>
-                  </div>
-                )}
-              </>
+            {/* Infinite scroll trigger */}
+            {!lugaSearch && (
+              <div ref={loaderRef} className="py-4 flex justify-center">
+                {lugaLoading && <SpinnerGap weight="bold" size={20} className="text-muted animate-spin" />}
+              </div>
             )}
           </>
         )}
+
       </div>
     </div>
   )
 }
 
-/* ── IA Movie Card ── */
-function IACard({ movie, onClick }: { movie: IAMovie; onClick: () => void }) {
+/* ── TMDB Card ── */
+function TMDBCard({ movie: m, onClick }: { movie: TMDBMovie; onClick: () => void }) {
   const [err, setErr] = useState(false)
-  const gs = getGenres(movie)
+  const title = m.title || m.name || ''
+  const year = (m.release_date || m.first_air_date || '').slice(0, 4)
   return (
     <div onClick={onClick} className="group cursor-pointer">
       <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-2"
         style={{ background: 'rgba(19,17,28,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-        {movie.thumb && !err ? (
-          <img src={movie.thumb} alt={movie.title} loading="lazy"
+        {m.poster_path && !err ? (
+          <img src={`https://image.tmdb.org/t/p/w342${m.poster_path}`} alt={title} loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={() => setErr(true)} />
         ) : (
@@ -406,60 +401,58 @@ function IACard({ movie, onClick }: { movie: IAMovie; onClick: () => void }) {
             <FilmSlate weight="duotone" size={28} className="text-muted opacity-40" />
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end pb-3">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
           <div className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-glow-sm">
-            <Play weight="fill" size={10} /> Watch
+            <Play weight="fill" size={10} /> Play
           </div>
         </div>
-        {movie.year ? (
-          <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-white text-[9px] font-bold px-1.5 py-0.5 rounded-lg">{movie.year}</div>
-        ) : null}
-        {gs[0] && (
-          <div className="absolute top-2 left-2 bg-primary/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase">{gs[0].slice(0,8)}</div>
+        {m.vote_average > 0 && (
+          <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm text-amber-400 text-[9px] font-bold px-1.5 py-0.5 rounded-lg flex items-center gap-0.5">
+            <Star weight="fill" size={8} /> {m.vote_average.toFixed(1)}
+          </div>
+        )}
+        {(m.media_type === 'tv' || m.name) && (
+          <div className="absolute top-2 left-2 bg-cyan-500/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">TV</div>
         )}
       </div>
-      <p className="text-[12px] font-bold text-white truncate">{movie.title}</p>
-      <p className="text-[10px] text-muted mt-0.5">{movie.year || 'Classic'}</p>
+      <p className="text-[12px] font-bold text-white truncate tracking-tight">{title}</p>
+      <p className="text-[10px] text-muted mt-0.5">{year || '—'}</p>
     </div>
   )
 }
 
-/* ── VJ Movie Card ── */
-function VJCard({ movie, onClick }: { movie: VJMovie; onClick: () => void }) {
+/* ── LugaFlix Card ── */
+function LugaCard({ movie: m, onClick }: { movie: LugaMovie; onClick: () => void }) {
   const [err, setErr] = useState(false)
+  const vj = normaliseVj(m.vj)
   return (
     <div onClick={onClick} className="group cursor-pointer">
       <div className="relative aspect-[2/3] rounded-2xl overflow-hidden mb-2"
-        style={{ background: 'rgba(19,17,28,0.8)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
-        {movie.p && !err ? (
-          <img src={movie.p} alt={movie.n} loading="lazy"
+        style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(19,17,28,0.9))', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
+        {m.thumbnail_url && !err ? (
+          <img src={m.thumbnail_url} alt={m.title} loading="lazy"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             onError={() => setErr(true)} />
         ) : (
-          <div className="w-full h-full flex items-center justify-center"
-            style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.15),rgba(19,17,28,0.9))' }}>
+          <div className="w-full h-full flex items-center justify-center">
             <Microphone weight="duotone" size={28} className="text-primary-light opacity-40" />
           </div>
         )}
-        {/* Hover overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-end pb-3">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-center pb-3">
           <div className="flex items-center gap-1.5 bg-primary text-white text-[11px] font-bold px-3.5 py-1.5 rounded-full shadow-glow-sm">
             <Play weight="fill" size={10} /> Watch
           </div>
         </div>
-        {/* Type badge */}
         <div className="absolute top-2 left-2 text-[8px] font-black px-1.5 py-0.5 rounded-md text-white"
-          style={{ background: movie.t === 'series' ? 'rgba(16,185,129,0.85)' : 'rgba(124,58,237,0.85)' }}>
-          {movie.t === 'series' ? 'SERIES' : 'MOVIE'}
+          style={{ background: m.type === 'Series' ? 'rgba(16,185,129,0.85)' : 'rgba(124,58,237,0.85)' }}>
+          {m.type === 'Series' ? 'SERIES' : 'MOVIE'}
         </div>
-        {/* VJ translate badge */}
-        <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
-          style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-          <Translate weight="bold" size={10} className="text-primary-light" />
+        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm px-1.5 py-0.5 rounded-lg">
+          <Translate weight="bold" size={9} className="text-primary-light" />
         </div>
       </div>
-      <p className="text-[12px] font-bold text-white truncate tracking-tight">{movie.n}</p>
-      <p className="text-[9px] text-muted mt-0.5 uppercase tracking-wider">Luganda</p>
+      <p className="text-[11px] font-bold text-white truncate tracking-tight">{m.title}</p>
+      <p className="text-[9px] text-muted mt-0.5 truncate">{vj}</p>
     </div>
   )
 }
