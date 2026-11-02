@@ -31,7 +31,9 @@ function moviePath(m: IAMovie) {
 
 // ── VJ Movie watch path ────────────────────────────────────────
 function vjPath(m: VJMovie) {
-  return `/movies/vj/${encodeURIComponent(m.id)}?title=${encodeURIComponent(m.n)}&poster=${encodeURIComponent(m.p)}&type=${m.t}`
+  // Extract numeric TMDB id from "tmdb:1402" → "1402"
+  const tmdbId = m.id.replace('tmdb:', '')
+  return `/movies/vj/${tmdbId}?title=${encodeURIComponent(m.n)}&poster=${encodeURIComponent(m.p)}&type=${m.t}`
 }
 
 export default function MoviesPage() {

@@ -18,6 +18,11 @@ export interface IARail {
 
 export const IA_RAILS: IARail[] = [
   {
+    key: 'newReleases',
+    label: 'New Arrivals',
+    query: 'mediatype:movies collection:feature_films&sort[]=-publicdate',
+  },
+  {
     key: 'popular',
     label: 'Most Watched',
     query: 'mediatype:movies collection:feature_films&sort[]=downloads+desc',
@@ -25,7 +30,7 @@ export const IA_RAILS: IARail[] = [
   {
     key: 'action',
     label: 'Action & Adventure',
-    query: 'mediatype:movies collection:feature_films subject:(action OR adventure)&sort[]=downloads+desc',
+    query: 'mediatype:movies collection:feature_films subject:(action OR adventure)&sort[]=-publicdate',
   },
   {
     key: 'drama',
