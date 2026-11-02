@@ -12,10 +12,11 @@ interface LM {
   t:  string   // title
   v:  string   // vj
   p:  string   // poster (TMDB)
-  u:  string   // direct MP4 url
+  u?: string   // direct MP4 url (fallback)
   y:  string   // year
   tp: string   // Movie | Series
   ov?: string  // overview
+  tid?: number // TMDB id — used for vidsrc.to playback
 }
 
 // ── TMDB movie ───────────────────────────────────────────────
@@ -75,7 +76,16 @@ function tmdbPath(m: TM) {
 }
 
 function lugaPath(m: LM) {
-  return `/movies/luga/${encodeURIComponent(m.id)}?title=${encodeURIComponent(m.t)}&poster=${encodeURIComponent(m.p)}&vj=${encodeURIComponent(normaliseVj(m.v))}&url=${encodeURIComponent(m.u)}&ov=${encodeURIComponent(m.ov||'')}`
+  // If we have a TMDB id, use vidsrc.to for reliable playback
+  if (m.tid) {
+    const title  = encodeURIComponent(m.t)
+    const poster = encodeURIComponent(m.p)
+    const rating = ''
+    const plot   = encodeURIComponent(m.ov || '')
+    return `/movies/tmdb/${m.tid}?type=movie&title=${title}&poster=${poster}&year=${m.y}&rating=${rating}&plot=${plot}&vj=${encodeURIComponent(normaliseVj(m.v))}`
+  }
+  // Fallback: direct MP4 player
+  return `/movies/luga/${encodeURIComponent(m.id)}?title=${encodeURIComponent(m.t)}&poster=${encodeURIComponent(m.p)}&vj=${encodeURIComponent(normaliseVj(m.v))}&url=${encodeURIComponent((m as LM & {u?:string}).u||'')}&ov=${encodeURIComponent(m.ov||'')}`
 }
 
 const PAGE = 40
