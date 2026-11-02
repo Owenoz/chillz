@@ -1,10 +1,11 @@
 // LugaFlix API — 54,810 VJ-translated movies with direct MP4 CDN URLs
 // Source: movies.mruodel.com/api/movies
+// CORS proxy: /api/luga (Vercel serverless function)
 
 export interface LugaMovie {
   id: number
   title: string
-  url: string          // Direct MP4 CDN URL — plays in <video> tag
+  url: string
   thumbnail_url: string
   description: string | null
   year: string | null
@@ -19,8 +20,6 @@ export interface LugaMovie {
   likes_count: number
 }
 
-const API = 'https://movies.mruodel.com/api/movies'
-
 interface LugaResponse {
   code: number
   status: number
@@ -30,26 +29,39 @@ interface LugaResponse {
   }
 }
 
-export async function getLugaMovies(page = 1, perPage = 40): Promise<LugaResponse> {
-  const res = await fetch(`${API}?page=${page}&per_page=${perPage}`, {
+// Use our Vercel proxy to avoid CORS — falls back to direct if proxy unavailable
+async function lugaFetch(page = 1, perPage = 40): Promise<LugaResponse> {
+  // Try Vercel proxy first
+  try {
+    const res = await fetch(`/api/luga?page=${page}&per_page=${perPage}`)
+    if (res.ok) return res.json()
+  } catch { /* fallback below */ }
+
+  // Direct call (works if server has no CORS restriction)
+  const res = await fetch(`https://movies.mruodel.com/api/movies?page=${page}&per_page=${perPage}`, {
     headers: { 'User-Agent': 'Mozilla/5.0' },
   })
   if (!res.ok) throw new Error(`LugaFlix error ${res.status}`)
   return res.json()
 }
 
-export async function searchLuga(query: string, page = 1): Promise<LugaMovie[]> {
-  // API has no search endpoint — fetch a larger page and filter
-  const data = await getLugaMovies(page, 100)
-  const q = query.toLowerCase()
-  return data.data.items.filter(m =>
-    m.title.toLowerCase().includes(q) ||
-    m.vj.toLowerCase().includes(q) ||
-    (m.genre ?? '').toLowerCase().includes(q)
-  )
+export async function getLugaMovies(page = 1, perPage = 40): Promise<LugaResponse> {
+  return lugaFetch(page, perPage)
 }
 
-// Normalise VJ name: "Vj Little T" → "VJ Little T"
+export async function searchLuga(query: string): Promise<LugaMovie[]> {
+  // Try multiple pages and filter
+  try {
+    const data = await lugaFetch(1, 100)
+    const q = query.toLowerCase()
+    return data.data.items.filter(m =>
+      m.title.toLowerCase().includes(q) ||
+      m.vj.toLowerCase().includes(q) ||
+      (m.genre ?? '').toLowerCase().includes(q)
+    )
+  } catch { return [] }
+}
+
 export function normaliseVj(raw: string): string {
   return raw.replace(/^vj\s*/i, 'VJ ').trim()
 }
