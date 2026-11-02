@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
+import ErrorBoundary from './components/ErrorBoundary'
 import HomePage from './pages/HomePage'
 import TvPage from './pages/TvPage'
 import TvWatchPage from './pages/TvWatchPage'
@@ -18,19 +19,17 @@ export default function App() {
     <>
       <Routes>
         <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="tv" element={<TvPage />} />
-          <Route path="tv/watch/:id" element={<TvWatchPage />} />
-          <Route path="sports" element={<SportsPage />} />
-          <Route path="sports/fixture/:id" element={<FixturePage />} />
-          <Route path="movies" element={<MoviesPage />} />
-          {/* Non-translated: TMDB metadata + vidsrc.to embed */}
-          <Route path="movies/tmdb/:id" element={<TMDBWatchPage />} />
-          {/* Translated: LugaFlix direct MP4 native player */}
-          <Route path="movies/luga/:id" element={<LugaWatchPage />} />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route path="checkout" element={<CheckoutPage />} />
-          <Route path="watchlist" element={<WatchlistPage />} />
+          <Route index element={<ErrorBoundary><HomePage /></ErrorBoundary>} />
+          <Route path="tv" element={<ErrorBoundary><TvPage /></ErrorBoundary>} />
+          <Route path="tv/watch/:id" element={<ErrorBoundary><TvWatchPage /></ErrorBoundary>} />
+          <Route path="sports" element={<ErrorBoundary><SportsPage /></ErrorBoundary>} />
+          <Route path="sports/fixture/:id" element={<ErrorBoundary><FixturePage /></ErrorBoundary>} />
+          <Route path="movies" element={<ErrorBoundary><MoviesPage /></ErrorBoundary>} />
+          <Route path="movies/tmdb/:id" element={<ErrorBoundary><TMDBWatchPage /></ErrorBoundary>} />
+          <Route path="movies/luga/:id" element={<ErrorBoundary><LugaWatchPage /></ErrorBoundary>} />
+          <Route path="profile" element={<ErrorBoundary><ProfilePage /></ErrorBoundary>} />
+          <Route path="checkout" element={<ErrorBoundary><CheckoutPage /></ErrorBoundary>} />
+          <Route path="watchlist" element={<ErrorBoundary><WatchlistPage /></ErrorBoundary>} />
         </Route>
       </Routes>
       <InstallBanner />
