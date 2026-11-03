@@ -1,8 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import {
   HouseSimple, Television, SoccerBall,
-  FilmSlate, UserCircle, MagnifyingGlass,
-  BellSimple, Play,
+  FilmSlate, DotsThree, Play,
 } from '@phosphor-icons/react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -11,12 +10,12 @@ const navItems = [
   { to: '/tv',     label: 'Live TV', Icon: Television  },
   { to: '/sports', label: 'Sports',  Icon: SoccerBall  },
   { to: '/movies', label: 'Movies',  Icon: FilmSlate   },
-  { to: '/profile',label: 'More',    Icon: UserCircle  },
+  { to: '/more',   label: 'More',    Icon: DotsThree   },
 ]
 
 export default function Layout() {
   const navigate = useNavigate()
-  const { user } = useAuth()
+  useAuth() // kept for future use
 
   return (
     <div className="min-h-screen bg-bg text-[#E8E6F0]">
@@ -57,24 +56,9 @@ export default function Layout() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
-            <button className="w-9 h-9 rounded-xl bg-surface-2 border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/40 transition-all">
-              <MagnifyingGlass weight="bold" size={16} />
-            </button>
-            <button className="w-9 h-9 rounded-xl bg-surface-2 border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/40 transition-all relative">
-              <BellSimple weight="bold" size={16} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full" />
-            </button>
-            <button
-              onClick={() => navigate('/profile')}
-              className="w-9 h-9 rounded-xl overflow-hidden border-2 border-primary/40 hover:border-primary transition-all"
-            >
-              {user?.user_metadata?.avatar_url ? (
-                <img src={user.user_metadata.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full bg-surface-2 flex items-center justify-center">
-                  <UserCircle weight="fill" size={20} className="text-primary-light" />
-                </div>
-              )}
+            <button onClick={() => navigate('/more')}
+              className="w-9 h-9 rounded-xl bg-surface-2 border border-border flex items-center justify-center text-muted hover:text-white hover:border-primary/40 transition-all">
+              <DotsThree weight="bold" size={20} />
             </button>
           </div>
         </div>
