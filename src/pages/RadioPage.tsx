@@ -1,192 +1,201 @@
-import { useState, useRef, useEffect } from 'react'
-import Hls from 'hls.js'
+import { useState } from 'react'
 import {
-  Radio, Play, Pause, SpeakerHigh, SpeakerSlash,
-  SpinnerGap, WarningCircle, MusicNote,
+  Radio, ArrowLeft, ArrowClockwise, ArrowsOut,
+  MusicNote, Broadcast,
 } from '@phosphor-icons/react'
 import { RADIO_STATIONS, type RadioStation } from '../data/uganda_extras'
 
+// Build YouTube live embed URL from channel ID
+function ytEmbed(channelId: string): string {
+  return `https://www.youtube-nocookie.com/embed/live_stream?channel=${channelId}&autoplay=1&rel=0&modestbranding=1&enablejsapi=0`
+}
+
 export default function RadioPage() {
-  const [active, setActive]   = useState<RadioStation | null>(null)
-  const [playing, setPlaying] = useState(false)
-  const [loading, setLoading] = useState(false)
-  const [error, setError]     = useState('')
-  const [muted, setMuted]     = useState(false)
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const hlsRef   = useRef<Hls | null>(null)
+  const [active, setActive]     = useState<RadioStation | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
+  const [loaded, setLoaded]     = useState(false)
 
-  const play = (station: RadioStation) => {
-    setActive(station)
-    setError('')
-    setLoading(true)
-    setPlaying(false)
+  // ── Watch page ──────────────────────────────────────────────
+  if (active) {
+    return (
+      <div className="bg-mesh min-h-screen pb-24">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+
+          {/* Back */}
+          <button onClick={() => { setActive(null); setLoaded(false) }}
+            className="flex items-center gap-1.5 text-sm text-muted hover:text-white mb-5 transition-colors group">
+            <ArrowLeft weight="bold" size={14} className="group-hover:-translate-x-0.5 transition-transform"/>
+            Back to Radio
+          </button>
+
+          {/* Station header */}
+          <div className="flex items-center gap-4 mb-5">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-2 border border-border shrink-0 flex items-center justify-center"
+              style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.3),rgba(19,17,28,0.9))' }}>
+              {active.logo
+                ? <img src={active.logo} alt={active.name}
+                    className="w-full h-full object-cover"
+                    onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                : <Radio weight="duotone" size={28} className="text-primary-light opacity-70"/>}
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-white tracking-tight">{active.name}</h1>
+              <p className="text-sm text-muted">{active.frequency} · {active.genre}</p>
+            </div>
+            <div className="ml-auto flex items-center gap-1.5 text-xs font-black text-red-400 bg-red-500/15 border border-red-500/25 px-2.5 py-1 rounded-full">
+              <span className="w-1.5 h-1.5 bg-red-500 rounded-full live-dot"/> LIVE
+            </div>
+          </div>
+
+          {/* YouTube Live player */}
+          <div className="relative w-full aspect-video bg-black rounded-2xl overflow-hidden border border-border mb-4"
+            style={{ boxShadow: '0 0 0 1px rgba(255,255,255,0.04), 0 32px 64px rgba(0,0,0,0.7)' }}>
+            {!loaded && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10 gap-4 pointer-events-none">
+                <div className="relative">
+                  <div className="w-20 h-20 rounded-3xl flex items-center justify-center"
+                    style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
+                    <Radio weight="fill" size={36} className="text-white"/>
+                  </div>
+                </div>
+                <p className="text-sm text-muted font-medium">Loading {active.name}…</p>
+              </div>
+            )}
+            <iframe
+              key={`radio-${active.id}-${reloadKey}`}
+              src={ytEmbed(active.yt_channel_id)}
+              title={active.name}
+              className="absolute inset-0 w-full h-full"
+              allow="autoplay; fullscreen; picture-in-picture; encrypted-media"
+              allowFullScreen
+              onLoad={() => setLoaded(true)}
+            />
+          </div>
+
+          {/* Controls */}
+          <div className="flex gap-2 mb-5">
+            <button onClick={() => { setLoaded(false); setReloadKey(k => k + 1) }}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-muted hover:text-white transition-all"
+              style={{ background: 'rgba(19,17,28,0.8)', border: '1px solid rgba(45,38,69,0.6)' }}>
+              <ArrowClockwise weight="bold" size={13}/> Reload
+            </button>
+            <a href={`https://www.youtube.com/channel/${active.yt_channel_id}/live`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-muted hover:text-white transition-all"
+              style={{ background: 'rgba(19,17,28,0.8)', border: '1px solid rgba(45,38,69,0.6)' }}>
+              <ArrowsOut weight="bold" size={13}/> Open Full Screen
+            </a>
+          </div>
+
+          {/* Description */}
+          <p className="text-sm text-muted leading-relaxed">{active.description}</p>
+
+          {/* Other stations */}
+          <div className="mt-8">
+            <h3 className="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <Radio weight="duotone" size={14} className="text-primary-light"/> Other Stations
+            </h3>
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              {RADIO_STATIONS.filter(s => s.id !== active.id).map(station => (
+                <button key={station.id}
+                  onClick={() => { setActive(station); setLoaded(false); setReloadKey(0) }}
+                  className="shrink-0 flex flex-col items-center gap-1.5 group">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden border-2 border-border group-hover:border-primary/50 transition-all"
+                    style={{ background: 'rgba(19,17,28,0.8)' }}>
+                    {station.logo
+                      ? <img src={station.logo} alt={station.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                          onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                      : <div className="w-full h-full flex items-center justify-center">
+                          <Radio weight="duotone" size={22} className="text-primary-light opacity-50"/>
+                        </div>}
+                  </div>
+                  <span className="text-[9px] font-semibold text-muted group-hover:text-white transition-colors text-center w-16 truncate">
+                    {station.name.replace(' FM','').replace(' Radio','')}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  useEffect(() => {
-    if (!active) return
-    const audio = audioRef.current
-    if (!audio) return
-    if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null }
-    audio.pause()
-
-    const url = active.stream_url
-    const isHls = url.includes('.m3u8')
-
-    const onPlay  = () => { setPlaying(true);  setLoading(false) }
-    const onPause = () => setPlaying(false)
-    const onErr   = () => {
-      setLoading(false)
-      setError('Stream unavailable. Trying YouTube fallback…')
-    }
-
-    if (isHls && Hls.isSupported()) {
-      const hls = new Hls({ lowLatencyMode: true })
-      hls.loadSource(url)
-      hls.attachMedia(audio)
-      hls.on(Hls.Events.MANIFEST_PARSED, () => { audio.play().catch(() => {}) })
-      hls.on(Hls.Events.ERROR, (_e, d) => { if (d.fatal) onErr() })
-      hlsRef.current = hls
-    } else if (isHls && audio.canPlayType('application/vnd.apple.mpegurl')) {
-      audio.src = url
-      audio.play().catch(onErr)
-    } else {
-      audio.src = url
-      audio.play().catch(onErr)
-    }
-
-    audio.addEventListener('playing', onPlay, { once: false })
-    audio.addEventListener('pause', onPause)
-    audio.addEventListener('error', onErr, { once: true })
-
-    return () => {
-      audio.removeEventListener('playing', onPlay)
-      audio.removeEventListener('pause', onPause)
-      audio.removeEventListener('error', onErr)
-      if (hlsRef.current) { hlsRef.current.destroy(); hlsRef.current = null }
-    }
-  }, [active])
-
-  const togglePlay = () => {
-    const a = audioRef.current
-    if (!a) return
-    playing ? a.pause() : a.play()
-  }
-
-  const toggleMute = () => {
-    const a = audioRef.current
-    if (!a) return
-    a.muted = !a.muted
-    setMuted(a.muted)
-  }
-
+  // ── Browse page ─────────────────────────────────────────────
   return (
     <div className="bg-mesh min-h-screen pb-24">
 
-      {/* ── Header ── */}
+      {/* Hero header */}
       <div className="relative overflow-hidden border-b border-border/40"
-        style={{ background: 'linear-gradient(180deg,rgba(124,58,237,0.12) 0%,transparent 100%)' }}>
+        style={{ background: 'linear-gradient(180deg,rgba(124,58,237,0.15) 0%,transparent 100%)' }}>
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[80px] opacity-15"
+            style={{ background: 'radial-gradient(ellipse,#7C3AED,transparent)' }}/>
+          <div className="absolute top-0 left-0 w-48 h-48 rounded-full blur-[60px] opacity-10"
+            style={{ background: 'radial-gradient(ellipse,#EC4899,transparent)' }}/>
+        </div>
         <div className="max-w-7xl mx-auto px-5 pt-8 pb-6">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-14 h-14 rounded-2xl flex items-center justify-center shadow-glow-sm"
+          <div className="flex items-center gap-4">
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-glow-md"
               style={{ background: 'linear-gradient(135deg,#7C3AED,#EC4899)' }}>
-              <Radio weight="fill" size={26} className="text-white" />
+              <Radio weight="fill" size={30} className="text-white"/>
             </div>
             <div>
               <h1 className="text-3xl font-black text-white tracking-tight">Uganda Radio</h1>
-              <p className="text-muted text-sm">{RADIO_STATIONS.length} stations · Free · Works on 2G</p>
+              <p className="text-muted text-sm mt-0.5">{RADIO_STATIONS.length} stations · Free · Works on slow internet</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Hidden audio element ── */}
-      <audio ref={audioRef} preload="none" />
-
-      {/* ── Now Playing bar ── */}
-      {active && (
-        <div className="sticky top-14 z-30 mx-4 mt-4 rounded-2xl p-3 flex items-center gap-3"
-          style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.25),rgba(19,17,28,0.98))', border: '1px solid rgba(124,58,237,0.4)', backdropFilter: 'blur(20px)', boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }}>
-          <div className="w-12 h-12 rounded-xl overflow-hidden bg-surface-2 shrink-0">
-            {active.logo
-              ? <img src={active.logo} alt={active.name} className="w-full h-full object-cover"
-                  onError={e => ((e.currentTarget as HTMLImageElement).style.display='none')} />
-              : <div className="w-full h-full flex items-center justify-center"><Radio weight="duotone" size={22} className="text-primary-light opacity-60"/></div>}
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-black text-white truncate">{active.name}</p>
-            <p className="text-[10px] text-muted truncate">{active.genre}</p>
-          </div>
-          {loading && <SpinnerGap weight="bold" size={20} className="text-primary animate-spin shrink-0"/>}
-          {error && !active.embed_url && <WarningCircle weight="duotone" size={20} className="text-amber-500 shrink-0"/>}
-          <button onClick={toggleMute} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center shrink-0">
-            {muted ? <SpeakerSlash weight="fill" size={14} className="text-white"/> : <SpeakerHigh weight="fill" size={14} className="text-white"/>}
-          </button>
-          <button onClick={togglePlay}
-            className="w-10 h-10 rounded-full flex items-center justify-center shrink-0"
-            style={{ background: 'linear-gradient(135deg,#7C3AED,#5B21B6)', boxShadow: '0 4px 12px rgba(124,58,237,0.5)' }}>
-            {playing ? <Pause weight="fill" size={16} className="text-white"/> : <Play weight="fill" size={16} className="text-white translate-x-0.5"/>}
-          </button>
-
-          {/* YouTube fallback iframe if stream fails */}
-          {error && active.embed_url && (
-            <div className="absolute left-0 right-0 bottom-0 translate-y-full pt-2 px-4">
-              <iframe src={active.embed_url} className="w-full" style={{ height: 0 }}
-                allow="autoplay; encrypted-media" title={active.name}
-                onLoad={() => { setError(''); setPlaying(true); setLoading(false) }} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ── Station grid ── */}
+      {/* Station grid */}
       <div className="max-w-7xl mx-auto px-5 mt-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {RADIO_STATIONS.map(station => {
-            const isActive = active?.id === station.id
-            return (
-              <button key={station.id} onClick={() => play(station)}
-                className="group relative overflow-hidden rounded-2xl p-4 text-left transition-all hover:-translate-y-1"
-                style={{
-                  background: isActive
-                    ? 'linear-gradient(135deg,rgba(124,58,237,0.3),rgba(19,17,28,0.95))'
-                    : 'rgba(19,17,28,0.8)',
-                  border: `2px solid ${isActive ? 'rgba(124,58,237,0.6)' : 'rgba(45,38,69,0.6)'}`,
-                  boxShadow: isActive ? '0 0 24px rgba(124,58,237,0.3)' : '0 4px 16px rgba(0,0,0,0.4)',
-                }}>
-                <div className="w-14 h-14 rounded-2xl overflow-hidden bg-surface-2 mb-3 mx-auto flex items-center justify-center">
-                  {station.logo
-                    ? <img src={station.logo} alt={station.name} className="w-full h-full object-cover"
-                        onError={e => ((e.currentTarget as HTMLImageElement).style.display='none')} />
-                    : <Radio weight="duotone" size={28} className="text-primary-light opacity-50"/>}
-                </div>
-                <p className="text-sm font-black text-white text-center truncate">{station.name}</p>
-                <p className="text-[10px] text-muted text-center mt-0.5 truncate">{station.frequency}</p>
-                <p className="text-[9px] text-muted text-center mt-0.5 line-clamp-1">{station.genre}</p>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+          {RADIO_STATIONS.map(station => (
+            <button key={station.id} onClick={() => { setActive(station); setLoaded(false) }}
+              className="group relative overflow-hidden rounded-2xl p-5 text-center transition-all hover:-translate-y-1"
+              style={{
+                background: 'rgba(19,17,28,0.8)',
+                border: '1px solid rgba(45,38,69,0.6)',
+                boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+              }}>
 
-                {isActive && playing && (
-                  <div className="flex items-center justify-center gap-0.5 mt-2">
-                    {[1,2,3,4,5].map(b => (
-                      <div key={b} className="w-0.5 rounded-full bg-primary-light"
-                        style={{ height: `${8 + Math.random()*12}px`, animation: `live-pulse ${0.8 + Math.random()*0.4}s ease-in-out infinite`, animationDelay: `${b*0.1}s` }} />
-                    ))}
-                  </div>
-                )}
-                {isActive && loading && (
-                  <div className="flex justify-center mt-2">
-                    <SpinnerGap weight="bold" size={16} className="text-primary animate-spin"/>
-                  </div>
-                )}
-                {!isActive && (
-                  <div className="flex justify-center mt-2">
-                    <div className="flex items-center gap-1 text-[10px] text-muted group-hover:text-primary-light transition-colors">
-                      <MusicNote weight="fill" size={10}/> Listen
-                    </div>
-                  </div>
-                )}
-              </button>
-            )
-          })}
+              {/* Glow on hover */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity rounded-2xl"
+                style={{ background: 'radial-gradient(ellipse at top, rgba(124,58,237,0.12), transparent 70%)' }}/>
+
+              {/* Logo */}
+              <div className="w-16 h-16 rounded-2xl overflow-hidden mx-auto mb-3 flex items-center justify-center border border-border"
+                style={{ background: 'linear-gradient(135deg,rgba(124,58,237,0.2),rgba(19,17,28,0.9))' }}>
+                {station.logo
+                  ? <img src={station.logo} alt={station.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-400"
+                      onError={e => ((e.currentTarget as HTMLImageElement).style.display = 'none')} />
+                  : <Radio weight="duotone" size={28} className="text-primary-light opacity-60"/>}
+              </div>
+
+              <p className="text-sm font-black text-white tracking-tight">{station.name}</p>
+              <p className="text-[10px] text-muted mt-0.5">{station.frequency}</p>
+              <p className="text-[10px] text-muted mt-0.5 line-clamp-1">{station.genre}</p>
+
+              {/* Listen button */}
+              <div className="mt-3 flex items-center justify-center gap-1.5 text-[11px] font-bold text-primary-light group-hover:text-white transition-colors">
+                <MusicNote weight="fill" size={12}/> Listen Live
+              </div>
+
+              {/* Live badge */}
+              <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-red-600/80 text-white text-[8px] font-black px-1.5 py-0.5 rounded-md">
+                <span className="w-1 h-1 bg-white rounded-full live-dot"/> LIVE
+              </div>
+            </button>
+          ))}
         </div>
+
+        <p className="text-center text-[11px] text-muted mt-8 pb-4">
+          <Broadcast weight="duotone" size={13} className="inline mr-1 text-primary-light opacity-60"/>
+          Streams powered by YouTube Live · Tap any station to listen
+        </p>
       </div>
     </div>
   )

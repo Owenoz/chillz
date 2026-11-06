@@ -5,8 +5,10 @@ export interface RadioStation {
   frequency: string
   genre: string
   logo: string
-  stream_url: string    // HLS m3u8 or MP3 direct stream
-  embed_url?: string    // YouTube embed fallback
+  // YouTube channel ID — primary embed source (always works)
+  yt_channel_id: string
+  // YouTube video ID for latest live stream (fallback)
+  yt_video_id?: string
   description: string
 }
 
@@ -15,11 +17,10 @@ export const RADIO_STATIONS: RadioStation[] = [
     id: 'cbs-fm',
     name: 'CBS FM 88.8',
     frequency: '88.8 FM',
-    genre: 'Luganda · Talk · News',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/1/1c/CBS_Radio_Buganda_logo.png',
-    stream_url: 'https://stream.zeno.fm/t8exubpsgtzuv',
-    embed_url: 'https://www.youtube.com/embed/live_stream?channel=UCQ0KFnkRGEQIMXbIRBMQ6wA',
-    description: "Radio ya Ssabassajja — Uganda's biggest Luganda radio station",
+    genre: 'Luganda · News · Talk',
+    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c3/CBS_Radio_Buganda_logo.jpg/320px-CBS_Radio_Buganda_logo.jpg',
+    yt_channel_id: 'UCQ0KFnkRGEQIMXbIRBMQ6wA',
+    description: "Radio ya Ssabassajja — Uganda's biggest Luganda radio station broadcasting from Kampala",
   },
   {
     id: 'akaboozi',
@@ -27,19 +28,8 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '87.9 FM',
     genre: 'Luganda · News · Entertainment',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/4/4e/Akaboozi_fm.jpg/320px-Akaboozi_fm.jpg',
-    stream_url: 'https://stream.zeno.fm/4qm4yrnkszquv',
-    embed_url: 'https://www.youtube.com/embed/live_stream?channel=UCi3ORxPKXBBp-7Z_WCDPNzg',
-    description: 'Akaboozi FM — Voice of the people in Luganda',
-  },
-  {
-    id: 'sanyu-fm',
-    name: 'Sanyu FM 88.2',
-    frequency: '88.2 FM',
-    genre: 'English · Music · Entertainment',
-    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Sanyu_FM_logo.jpg/320px-Sanyu_FM_logo.jpg',
-    stream_url: 'https://stream.zeno.fm/4njutfmcmyzuv',
-    embed_url: 'https://www.youtube.com/embed/live_stream?channel=UCOSMbFR_HJaEinYEfTYhUSg',
-    description: 'Sanyu FM — The Urban Beat of Kampala',
+    yt_channel_id: 'UCi3ORxPKXBBp-7Z_WCDPNzg',
+    description: 'Akaboozi FM — Voice of the people in Luganda from Kampala',
   },
   {
     id: 'capital-fm',
@@ -47,9 +37,8 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '91.3 FM',
     genre: 'English · Music · Talk',
     logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/47/Capital_Radio_Uganda.jpg/320px-Capital_Radio_Uganda.jpg',
-    stream_url: 'https://stream.zeno.fm/fx9wy9ycmyzuv',
-    embed_url: 'https://www.youtube.com/embed/live_stream?channel=UCvn4Z3RyAeNn_OWIPSGlj2A',
-    description: 'Capital FM 91.3 — Number 1 Hit Music Station',
+    yt_channel_id: 'UCvn4Z3RyAeNn_OWIPSGlj2A',
+    description: 'Capital FM 91.3 — Number 1 Hit Music Station in Uganda',
   },
   {
     id: 'kfm',
@@ -57,18 +46,26 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '93.3 FM',
     genre: 'English · News · Talk',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e7/KFM_Logo.png/320px-KFM_Logo.png',
-    stream_url: 'https://stream.zeno.fm/uw1y2jmcmyzuv',
-    embed_url: 'https://www.youtube.com/embed/live_stream?channel=UCU9TgAO4OHXM8i4h7lJpwlA',
-    description: 'KFM 93.3 — Kampala FM, informing Uganda since 1994',
+    yt_channel_id: 'UCU9TgAO4OHXM8i4h7lJpwlA',
+    description: 'KFM 93.3 — Kampala FM, informing Uganda since 1994. Part of Nation Media Group.',
+  },
+  {
+    id: 'sanyu-fm',
+    name: 'Sanyu FM 88.2',
+    frequency: '88.2 FM',
+    genre: 'English · Music · Entertainment',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d2/Sanyu_FM_logo.jpg/320px-Sanyu_FM_logo.jpg',
+    yt_channel_id: 'UCOSMbFR_HJaEinYEfTYhUSg',
+    description: 'Sanyu FM — The Urban Beat of Kampala. Hit music and entertainment.',
   },
   {
     id: 'radio-simba',
     name: 'Radio Simba 97.3',
     frequency: '97.3 FM',
-    genre: 'Luganda · Music',
+    genre: 'Luganda · Music · Entertainment',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3d/Radio_Simba_logo.jpg/320px-Radio_Simba_logo.jpg',
-    stream_url: 'https://stream.zeno.fm/xhfr0vxgmyzuv',
-    description: 'Radio Simba — Lion of the airwaves',
+    yt_channel_id: 'UCJkG2V5TFMCvxeQnGPRqmqw',
+    description: 'Radio Simba 97.3 — The Lion of Uganda airways. Luganda music and talk.',
   },
   {
     id: 'galaxy-fm',
@@ -76,8 +73,8 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '100.2 FM',
     genre: 'English · Luganda · Entertainment',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6d/Galaxy_FM_logo.png/320px-Galaxy_FM_logo.png',
-    stream_url: 'https://stream.zeno.fm/c6zs0k8yqhzuv',
-    description: 'Galaxy FM — Your entertainment destination',
+    yt_channel_id: 'UCq3FeSHy5M-AMIwLUQiEijw',
+    description: 'Galaxy FM — Your go-to entertainment destination in Uganda.',
   },
   {
     id: 'crooze-fm',
@@ -85,8 +82,8 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '90.4 FM',
     genre: 'English · Music · Youth',
     logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/c/c8/Crooze_FM_logo.png/320px-Crooze_FM_logo.png',
-    stream_url: 'https://stream.zeno.fm/8njuczmcmyzuv',
-    description: 'Crooze FM — Western Uganda\'s biggest radio',
+    yt_channel_id: 'UCBpqYnDRkmmrBRZxUAoMZEA',
+    description: "Crooze FM 90.4 — Western Uganda's biggest youth radio station.",
   },
   {
     id: 'bukedde-fm',
@@ -94,8 +91,8 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '100.5 FM',
     genre: 'Luganda · News',
     logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b2/Bukedde_TV_1.png/320px-Bukedde_TV_1.png',
-    stream_url: 'https://stream.hydeinnovations.com/bukeddefm/index.m3u8',
-    description: 'Bukedde FM — News and talk in Luganda from New Vision',
+    yt_channel_id: 'UCnHQU9q_Vw-ixBHTJg-0Hkw',
+    description: 'Bukedde FM 100.5 — Luganda news and talk from New Vision Group.',
   },
   {
     id: 'xfm',
@@ -103,8 +100,26 @@ export const RADIO_STATIONS: RadioStation[] = [
     frequency: '94.8 FM',
     genre: 'English · Music · Youth',
     logo: '',
-    stream_url: 'https://stream.zeno.fm/mbqr8z98myzuv',
-    description: 'XFM 94.8 — Kampala\'s youth radio',
+    yt_channel_id: 'UCK5eBtuEs0RNt7lSBxXVdrg',
+    description: "XFM 94.8 — Kampala's urban hit music and entertainment station.",
+  },
+  {
+    id: 'radio-one',
+    name: 'Radio One FM 90.0',
+    frequency: '90.0 FM',
+    genre: 'Luganda · Entertainment',
+    logo: '',
+    yt_channel_id: 'UCxHAtIjHkFW4dOm7J7HAQRA',
+    description: 'Radio One FM — Luganda entertainment, music and current affairs.',
+  },
+  {
+    id: 'ntv-radio',
+    name: 'NTV Radio',
+    frequency: 'Online',
+    genre: 'English · News',
+    logo: 'https://upload.wikimedia.org/wikipedia/commons/thumb/c/c6/NTV_Uganda_logo.png/320px-NTV_Uganda_logo.png',
+    yt_channel_id: 'UCTsAJZY5B9MLQMvG1lMwCOw',
+    description: 'NTV Uganda audio stream — Live news, current affairs and talk shows.',
   },
 ]
 
@@ -115,7 +130,7 @@ export interface Church {
   location: string
   denomination: string
   logo: string
-  youtube_channel_id: string  // YouTube channel ID for live embeds
+  youtube_channel_id: string
   youtube_handle: string
   description: string
 }
@@ -126,7 +141,7 @@ export const CHURCHES: Church[] = [
     name: 'Watoto Church',
     location: 'Kampala',
     denomination: 'Pentecostal',
-    logo: 'https://upload.wikimedia.org/wikipedia/en/thumb/b/b1/Watoto_church_logo.png/320px-Watoto_church_logo.png',
+    logo: '',
     youtube_channel_id: 'UCBM7mo6IiBahvJ4l5DknLNQ',
     youtube_handle: '@WatotoChurch',
     description: 'Watoto Church Kampala — 35,000+ members across 18 locations',
@@ -212,29 +227,29 @@ export interface UPLTeam {
 }
 
 export const UPL_TEAMS: UPLTeam[] = [
-  { name: 'Vipers SC',         short: 'VIP', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/0/0a/Vipers_SC_badge.png/200px-Vipers_SC_badge.png', city: 'St. Mary\'s Stadium, Kitende' },
-  { name: 'KCCA FC',           short: 'KCC', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/KCCA_FC_logo.png/200px-KCCA_FC_logo.png', city: 'Lugogo, Kampala' },
-  { name: 'Express FC',        short: 'EXP', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Express_FC.png/200px-Express_FC.png', city: 'Mutesa II Stadium, Kampala' },
-  { name: 'SC Villa',          short: 'VIL', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/7/77/Sports_Club_Villa.png/200px-Sports_Club_Villa.png', city: 'Nakivubo, Kampala' },
-  { name: 'UPDF FC',           short: 'UPD', badge: '', city: 'UPDF Ground, Bombo' },
-  { name: 'Wakiso Giants',     short: 'WAK', badge: '', city: 'Wakiso' },
-  { name: 'URA FC',            short: 'URA', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/URA_FC.png/200px-URA_FC.png', city: 'Mandela Stadium, Namboole' },
-  { name: 'Police FC',         short: 'POL', badge: '', city: 'MTN Omondi Stadium' },
-  { name: 'Mbarara City FC',   short: 'MBC', badge: '', city: 'Kakyeka Stadium, Mbarara' },
-  { name: 'BUL FC',            short: 'BUL', badge: '', city: 'Kakindu Stadium, Jinja' },
-  { name: 'Onduparaka FC',     short: 'OND', badge: '', city: 'Greenlight Stadium, Arua' },
-  { name: 'Maroons FC',        short: 'MAR', badge: '', city: 'Luzira Prison Ground' },
+  { name: 'Vipers SC',            short: 'VIP', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/0/0a/Vipers_SC_badge.png/200px-Vipers_SC_badge.png', city: "St. Mary's Stadium, Kitende" },
+  { name: 'KCCA FC',              short: 'KCC', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/e/e5/KCCA_FC_logo.png/200px-KCCA_FC_logo.png', city: 'Lugogo, Kampala' },
+  { name: 'Express FC',           short: 'EXP', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/4/49/Express_FC.png/200px-Express_FC.png', city: 'Mutesa II Stadium, Kampala' },
+  { name: 'SC Villa',             short: 'VIL', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/7/77/Sports_Club_Villa.png/200px-Sports_Club_Villa.png', city: 'Nakivubo, Kampala' },
+  { name: 'UPDF FC',              short: 'UPD', badge: '', city: 'UPDF Ground, Bombo' },
+  { name: 'Wakiso Giants',        short: 'WAK', badge: '', city: 'Wakiso' },
+  { name: 'URA FC',               short: 'URA', badge: 'https://upload.wikimedia.org/wikipedia/en/thumb/1/17/URA_FC.png/200px-URA_FC.png', city: 'Mandela Stadium, Namboole' },
+  { name: 'Police FC',            short: 'POL', badge: '', city: 'MTN Omondi Stadium' },
+  { name: 'Mbarara City FC',      short: 'MBC', badge: '', city: 'Kakyeka Stadium, Mbarara' },
+  { name: 'BUL FC',               short: 'BUL', badge: '', city: 'Kakindu Stadium, Jinja' },
+  { name: 'Onduparaka FC',        short: 'OND', badge: '', city: 'Greenlight Stadium, Arua' },
+  { name: 'Maroons FC',           short: 'MAR', badge: '', city: 'Luzira Prison Ground' },
   { name: 'Soltilo Bright Stars', short: 'SBS', badge: '', city: 'Star Academy, Jinja' },
-  { name: 'Kitara FC',         short: 'KIT', badge: '', city: 'Hoima' },
-  { name: 'Mbale Heroes',      short: 'MBH', badge: '', city: 'Mbale' },
-  { name: 'Lugazi FC',         short: 'LUG', badge: '', city: 'Lugazi' },
+  { name: 'Kitara FC',            short: 'KIT', badge: '', city: 'Hoima' },
+  { name: 'Mbale Heroes',         short: 'MBH', badge: '', city: 'Mbale' },
+  { name: 'Lugazi FC',            short: 'LUG', badge: '', city: 'Lugazi' },
 ]
 
 // ── Africa / Nollywood movie categories ──────────────────────
 export const AFRICA_CATEGORIES = [
-  { key: 'nollywood', label: 'Nollywood', flag: '🇳🇬', query: 'nollywood nigeria movie 2023 2024 site:youtube.com', color: '#16a34a' },
-  { key: 'bongo',     label: 'Bongo',     flag: '🇹🇿', query: 'bongo movie tanzania swahili 2023', color: '#ca8a04' },
-  { key: 'uganda',    label: 'Uganda',    flag: '🇺🇬', query: 'uganda movie luganda 2023 full movie', color: '#dc2626' },
-  { key: 'kenya',     label: 'Kenya',     flag: '🇰🇪', query: 'kenya movie swahili 2023 full', color: '#166534' },
-  { key: 'ghana',     label: 'Ghana',     flag: '🇬🇭', query: 'ghana movie 2023 full', color: '#92400e' },
+  { key: 'nollywood', label: 'Nollywood', flag: '🇳🇬', color: '#16a34a' },
+  { key: 'bongo',     label: 'Bongo',     flag: '🇹🇿', color: '#ca8a04' },
+  { key: 'uganda',    label: 'Uganda',    flag: '🇺🇬', color: '#dc2626' },
+  { key: 'kenya',     label: 'Kenya',     flag: '🇰🇪', color: '#166534' },
+  { key: 'ghana',     label: 'Ghana',     flag: '🇬🇭', color: '#92400e' },
 ]
